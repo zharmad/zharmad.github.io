@@ -1,0 +1,262 @@
+html, body {
+  margin: 0;
+}
+
+html {
+  font-family: "Lato", sans-serif;  
+  height: 100%;
+  background-color: #494952;
+}
+
+body {
+  overflow: hidden;
+  height: inherit;
+}
+
+h1 {
+  font-size: 2rem;
+  letter-spacing: -1px;
+  position: absolute;
+  margin: 0;
+  top: -4px;
+  right: 5px;
+
+  color: transparent;
+  text-shadow: 0 0 4px black;
+}
+
+
+
+p {
+  margin: 5px;
+}
+
+#toolbar ul {
+  list-style: none;
+  margin: 5px;
+  padding: 5px;
+}
+
+
+/* Sliders. These are the draggable settings for numerical data. */
+
+.slidecontainer {
+  width: 95%;
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 98%; 
+  height: 12px;  
+  border-radius: 5px;   
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.slider:hover {
+  opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #04AA6D;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #04AA6D;
+  cursor: pointer;
+}
+
+/* Toggle Switches */
+/* The switch - the box around the slider */
+.switchToggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 16px;
+}
+
+/* Hide default HTML checkbox */
+.switchToggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Slider conversion of the check box */
+.sliderToggle {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.sliderToggle:before {
+  position: absolute;
+  content: "";
+  height: 10px;
+  width: 10px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .sliderToggle {
+  background-color: #04AA6D;
+}
+
+input:focus + .sliderToggle {
+  box-shadow: 0 0 1px #04AA6D;
+}
+
+input:checked + .sliderToggle:before {
+  -webkit-transform: translateX(16px);
+  -ms-transform: translateX(16px);
+  transform: translateX(16px);
+}
+
+/* Rounded sliders */
+.sliderToggle.round {
+  border-radius: 12px;
+}
+
+.sliderToggle.round:before {
+  border-radius: 50%;
+}
+
+.sidebarParent {
+  display: flex;
+  width: 260px;  
+  height: 100%;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  background-color: #FF0000;  
+}
+
+/* Sidebars Handle. */
+.sidebarHandle {
+  z-index: 5;
+  cursor: col-resize;
+  height: 100%;
+  left: 0;
+  top: 0;
+  width: 10px;
+  background-color: #446688;  
+}
+
+.sidebarCloseButton {
+  position: relative;
+  top: 0;
+  left: -25px;
+  font-size: 36px;
+  margin-left: -25px;
+  z-index: 10;
+  background-color: #EEEEEE;  
+  width: 40px;
+  height: 50px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 50px; 
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.sidebarCloseButton a {
+  text-decoration: none;
+  font-size: 36px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+.sidebarCloseButton a:hover {
+  color: #f1f1f1;
+}
+
+/* Sidebars. These contains controls and analysis windows. */
+.sidebarRight {
+  z-index: 1;
+  height: 100%;  
+  top: 0;
+  right: 0;
+  width: 0px;
+  position: fixed;
+  background-color: #FFFFFF;
+  overflow-x: hidden;
+  overflow-y: auto;  
+  transition: 0.5s;
+  padding: 0px 0px 0px 10px;
+  scrollbar-width: thin;
+}
+
+/* Dynamic sub-divs */
+.divDynamicBox {
+  width: 90%;
+  align: middle;  
+  border: 2px solid #888;
+  border-radius: 8px;
+  margin: 2px auto;
+  padding: 5px;
+}
+
+/* Other classes. */
+.buttonSimControl {    
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.buttonOpenSidebar {
+  font-size: 20px;
+  cursor: pointer;
+  background-color: #111;
+  color: white;
+  padding: 8px 8px;
+  border: none;
+  border-radius: 10px;
+}
+
+.buttonOpenSidebar:hover {
+  background-color: #444;
+}
+
+#mainWindow {
+  transition: margin-right .5s;
+  padding: 10px;
+}
+
+/* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+@media screen and (max-height: 450px) {
+  .sidebarRight {padding-top: 15px;}
+  .sidebarRight a {font-size: 18px;}
+}
+
+.canvasPieGraph {
+    object-fit: contain;
+    height: 250px;
+}
+
+.canvasGraph {
+
+}

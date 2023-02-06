@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>2DChem gas simulator</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+
+    <!-- Main Window. Shows the molecules and main navigation buttons. -->
+    <div id="mainWindow">
+        <p>
+            <button class="buttonOpenSidebar" onclick="open_sidebar('presets')">☀ Presets</button>
+            <button class="buttonOpenSidebar" onclick="open_sidebar('composition')">🥧 Composition</button>            
+            <button class="buttonOpenSidebar" onclick="open_sidebar('controls')">☰ Controls</button>
+            <button class="buttonOpenSidebar" onclick="open_sidebar('analysisLine')">📈 Time-plots</button>
+            <button class="buttonOpenSidebar" onclick="open_sidebar('analysisBar')">📊 Energies</button>
+        </p>
+        <canvas id="canvasSimulation"></canvas>
+        
+    </div>
+
+
+    <div id="sidebarParent" class="sidebarParent">
+        <!-- Sidebar Handle to act as a visual border w.r.t. the main window, and manage dynamic resizing -->    
+        <div id="sidebarHandle" class="sidebarHandle"></div>
+        
+        <!-- Sidebar to make easy presets -->
+        <div id="sidebarPresets" class="sidebarRight">
+            <p>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
+                <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
+            </p>
+            <hr width="50%" align="center" color="grey" size="2">                
+            <p>Preset simulation conditions</p>
+            <p><button onclick="generate_preset_simulation('noble gas')">Mixture of Noble gases</button></p>        
+            <p><button onclick="generate_preset_simulation('atmosphere')">Earth Atmosphere</button></p>
+            <p><button onclick="generate_preset_simulation('ozone layer formation')">Ozone layer equilibrium</button></p>
+            <p><button onclick="generate_preset_simulation('nitrogen dioxide')">Nitrogen dioxide equilibrium</button></p>
+            <p><button onclick="generate_preset_simulation('hydrogen iodide equilibrium')">Hydrogen iodide equilibrium</button></p>
+            <p><button onclick="generate_preset_simulation('combustion - H2 and O2 basic')">Oxygen and hydrogen combustion</button></p>
+            <hr width="50%" align="center" color="grey" size="2">
+            <p><label class="switchToggle"><input type="checkbox" id="togglePresetsOverwriteParams"><span class="sliderToggle round"></span></label> Overwrite all parameters if possible</p>
+        </div>       
+
+        <!-- Sidebar for simulation controls. -->
+        <!-- Note: Values will be overrriden by global values when main.js is loaded. -->
+        <div id="sidebarControls" class="sidebarRight">
+            <p>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
+                <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
+            </p>
+            <hr width="50%" align="center" color="grey" size="2">
+            
+            <p>
+            <strong>Current statistics</strong></br>
+            Molecules: <span id="textFieldCurrentNumMolecules"></span></br>
+            Temperature: <span id="textFieldCurrentTemperature"></span> K</br>
+            Volume: <span id="textFieldCurrentVolume"></span> nm²</br>
+            </p>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            <div id="toolbar" class="slidecontainer">            
+            <ul>
+                <li>Note: Some settings require the simulation to be reset.</li>
+                <li>
+                    One pixel equals: <span id="textFieldLengthScale"></span> pm.
+                    <input type="range" min="5" max="30" step="1" value="10" class="slider" id="sliderLengthScale">
+                </li>
+                
+                <li>
+                    Sim speed: <span id="textFieldTimeDelta"></span> fs per step.
+                    <input type="range" min="10.0" max="100.0" step="10.0" value="10.0" class="slider" id="sliderTimeDelta">
+                </li>                
+                
+                <li>
+                    World Temperature: <span id="textFieldWorldTemperature"></span>
+                    <input type="range" min="10" max="1000" value="300" step="10" class="slider" id="sliderWorldTemperature">
+                </li>
+                
+                <li>
+                    <label class="switchToggle"><input type="checkbox" id="toggleDoHeatExchange"><span class="sliderToggle round"></span></label>
+                    Do heat exchange with outside world when a molecule collides with simulation boundaries
+                </li>
+                
+                <li>
+                    <label class="switchToggle"><input type="checkbox" id="toggleUpdateSimWindow"><span class="sliderToggle round"></span></label> Show/hide atom movements
+                </li>
+            </ul>
+            </div>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            <div id="divPhotonEmitterIntensity" class="divDynamicBox">
+                <p>
+                <span id="textFieldPhotonEmitterDescription"></span>
+                Intensity: <span id="textFieldPhotonEmitterIntensity"></span>
+                </p>
+                <input type="range" min="-0.1" max="3.0" value="1.0" step="0.1" class="slider" id="sliderPhotonEmitterIntensity">
+            </div>
+
+        </div>
+
+        <div id="sidebarComposition" class="sidebarRight">
+            <p>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
+                <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
+            </p>
+            <hr width="50%" align="center" color="grey" size="2">
+        
+            <div style="height: 30%">
+                <canvas id="canvasMolComposition" height="30%" class="canvasPieGraph"></canvas>
+            </div>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            <p>Set initial composition:</p>
+            <div class="divDynamicBox">
+                <p>#-Molecules: <span id="textFieldNumMolecules"></span></p>
+                <input type="range" min="1" max="500" value="50" class="slider" id="sliderNumMolecules">
+            </div>
+            <hr width="50%" align="center" color="grey" size="2">
+            <div id="divInputComponent0" class="divDynamicBox">
+                <p><span id="colourBoxComponent0">  </span> <span id="textFieldComponent0"></span> : <span id="textPercentageComponent0"></span>%</p>
+                <input type="range" min="0" max="100" value="50" class="slider" id="sliderPercentageComponent0">
+            </div>            
+            <div id="divInputComponent1" class="divDynamicBox">
+                <p><span id="colourBoxComponent1">  </span> <span id="textFieldComponent1"></span> : <span id="textPercentageComponent1"></span>%</p>
+                <input type="range" min="0" max="100" value="20" class="slider" id="sliderPercentageComponent1">
+            </div>
+            <div id="divInputComponent2" class="divDynamicBox">
+                <p><span id="colourBoxComponent2">  </span> <span id="textFieldComponent2"></span> : <span id="textPercentageComponent2"></span>%</p>
+                <input type="range" min="0" max="100" value="10" class="slider" id="sliderPercentageComponent2">
+            </div>
+            <div id="divInputComponent3" class="divDynamicBox">
+                <p><span id="colourBoxComponent3">  </span> <span id="textFieldComponent3"></span> : <span id="textPercentageComponent3"></span>%</p>
+                <input type="range" min="0" max="100" value="10" class="slider" id="sliderPercentageComponent3">
+            </div>
+            <div id="divInputComponent4" class="divDynamicBox">
+                <p><span id="colourBoxComponent4">  </span> <span id="textFieldComponent4"></span> : <span id="textPercentageComponent4"></span>%</p>
+                <input type="range" min="0" max="100" value="5" class="slider" id="sliderPercentageComponent4">
+            </div>
+            <div id="divInputComponent5" class="divDynamicBox">
+                <p><span id="colourBoxComponent5">  </span> <span id="textFieldComponent5"></span> : <span id="textPercentageComponent5"></span>%</p>
+                <input type="range" min="0" max="100" value="5" class="slider" id="sliderPercentageComponent5">
+            </div>
+        </div>
+
+        <!-- Sidebar for time-based analysis -->
+        <div id="sidebarAnalysis0" class="sidebarRight">
+            <p>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
+                <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
+            </p>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+
+            <label class="switchToggle"><input type="checkbox" id="togglePlotTemperature" checked oninput="toggle_plot_temperature( this.checked )"><span class="sliderToggle round"></span></label>
+            Show Temperature Plot
+            <canvas id="canvasLineGraph1" height="250" class="canvasGraph"></canvas>           
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            
+            <label class="switchToggle"><input type="checkbox" id="togglePlotComposition" checked oninput="toggle_plot_composition( this.checked )"><span class="sliderToggle round"></span></label>
+            Show Composition Plot            
+            <canvas id="canvasLineGraph2" height="250" class="canvasGraph"></canvas>
+            <!--
+            <p>
+            <span id="spanPlotComponent0"> ||               
+                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent0"><span class="sliderToggle round"></span></label>
+                <span id="textFieldPlotComponent0">Comp0</span>
+            </span>
+            <span id="spanPlotComponent1"> ||
+                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent1"><span class="sliderToggle round"></span></label>
+                <span id="textFieldPlotComponent1">Comp1</span>
+            </span>
+            <span id="spanPlotComponent2"> ||
+                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent2"><span class="sliderToggle round"></span></label>
+                <span id="textFieldPlotComponent2">Comp2</span>
+            </span>
+            <span id="spanPlotComponent3"> ||
+                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent3"><span class="sliderToggle round"></span></label>
+                <span id="textFieldPlotComponent3">Comp3</span>
+            </span>
+            <span id="spanPlotComponent4"> ||
+                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent4"><span class="sliderToggle round"></span></label>
+                <span id="textFieldPlotComponent4">Comp4</span>
+            </span>
+            <span id="spanPlotComponent5"> ||
+                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent5"><span class="sliderToggle round"></span></label>
+                <span id="textFieldPlotComponent5">Comp5</span>
+            </span>
+            </p>
+            -->
+        </div>
+
+        <!-- Sidebar for bar-based analysis -->
+        <div id="sidebarAnalysis1" class="sidebarRight">
+            <p>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
+                <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
+            </p>
+            <hr width="50%" align="center" color="grey" size="2">
+            
+            <canvas id="canvasBarGraph" height="200" class="canvasGraph"></canvas>
+        </div>
+
+        <div id="sidebarCloseButton" class="sidebarCloseButton">
+            <a href="javascript:void(0)" class="buttonCloseSidebar" onclick="close_sidebars()">×</a>    
+        </div>        
+    </div>
+    
+    <!-- Loading section for all relevant Javascripts -->
+    <script src="defineMaths.js"></script>
+    <script src="defineGlobals.js"></script>
+    <script src="defineElements.js"></script>
+    <script src="defineMolecules.js"></script>
+    <script src="defineInteractionHandler.js"></script>
+    <script src="defineCompositions.js"></script>
+    <script src="defineSimulation.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.1.2/chart.umd.js" integrity="sha512-t41WshQCxr9T3SWH3DBZoDnAT9gfVLtQS+NKO60fdAwScoB37rXtdxT/oKe986G0BFnP4mtGzXxuYpHrMoMJLA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!--
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.1.2/dist/chart.umd.js"></script>
+    -->
+    
+    <script src="main.js"></script>
+  </body>
+</html>
