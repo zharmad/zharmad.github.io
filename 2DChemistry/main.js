@@ -1,6 +1,12 @@
 // Initial doc: https://github.com/mdn/learning-area/tree/main/javascript/oojs/bouncing-balls
 
-/* = = = Initialisation sectoin = = = */
+/* = = = Initialisation section = = = */
+
+// window.addEventListener('unhandledrejection', function(event) {
+  // alert(event.promise); // [object Promise] - the promise that generated the error
+  // alert(event.reason); // Error: Whoops! - the unhandled error object  
+  // throw "";
+// });
 
 // setup HTML5 canvas
 //const canvasSim = document.querySelector("canvasSimulation");
@@ -272,8 +278,11 @@ globalVars.bPresetsOverwriteParams = true;
 
 
 function loop() {
-    if (!bRun) { return; }
-    sim.step();
+    if (!bRun) { return; }   
+    sim.step().catch( err=> {
+        stop_simulation();   
+        throw err;
+    });
     requestAnimationFrame(loop);
 }
 
@@ -294,7 +303,9 @@ function activate_step_button() {
             sim.set_target_number_of_molecules(sliderNumMol.value);        
             regenerate_simulation();
         }        
-        sim.step();
+        sim.step().catch( err=> {
+            throw err;
+        });        
         //requestAnimationFrame();
     }
 }

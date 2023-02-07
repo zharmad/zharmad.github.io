@@ -347,7 +347,7 @@ class Simulation {
             maxMolVolume = Math.max( maxMolVolume, molVolume );
         }
         maxMolVolume *= 1e-6 ;
-        console.log( this.nMoleculesTarget, volume, targetVolumePerMol, maxMolVolume );
+        //console.log( this.nMoleculesTarget, volume, targetVolumePerMol, maxMolVolume );
         if ( targetVolumePerMol < maxMolVolume / limitRatio ) {
             const nMoleculesNew = Math.floor( limitRatio * volume / maxMolVolume );
             console.log( `Too dense! Reducing the target number of molecules from ${this.nMoleculesTarget} to ${nMoleculesNew}.` );
@@ -393,6 +393,9 @@ class Simulation {
     // New strategy is to put all of the circles of the same colour in a single path.
     // This is best done with a molecule colouring scheme.    
     draw_all_new() {
+        
+        if ( !this.bDrawMolecules ) { return; }
+        
         const ctxLoc = this.graphicalContext;
         
         this.draw_background();
@@ -489,11 +492,15 @@ class Simulation {
         /* Account for additions and subtractions here. */
         if ( arrDel.length > 0 ) {
             this.resolve_molecule_changes( arrAdd, arrDel );
+            
+            // Draw new molecules separately in an asynchronous implementation.
+            for (const mol of arrAdd) { mol.draw( this.graphicalContext ); }
+            
             //stop_simulation();
         }
     }
     
-    step() {
+    async step() {
         this.timestep ++;
         const dt = this.dt;
         this.timeElapsed += dt * this.timeFactor ;
@@ -521,6 +528,14 @@ class Simulation {
         for (const mol of this.molecules) {
             mol.update_position( dt );
         }
+        
+        // Asynchronous version of draw. Breaks fidelity but speed up simulation work.        
+        let drawPromise = new Promise( function( resolve, reject ) {
+            sim.draw_all_new();
+            resolve();
+            reject();
+        });
+        
         
         // Detect and resolve collisions
         //const t0 = performance.now();
@@ -575,8 +590,8 @@ class Simulation {
             this.modules[i].step_call();
         }        
 
-        // inform the graphical context.
-        if( this.bDrawMolecules ) { this.draw_all_new(); }        
+        // inform the graphical context. -- synchronous execution version.
+        // if( this.bDrawMolecules ) { this.draw_all_new(); }        
         
         // inform fast updaters
         this.update_statistics();        
@@ -590,6 +605,7 @@ class Simulation {
             this.update_all_graphs();
         }
                 
+        await drawPromise;
     }
 
     debug() {
@@ -611,14 +627,14 @@ class Simulation {
         let bCollideX = false, bCollideY = false, bMovingWall = false;        
         const vInit = Vector2D.duplicate( v );
         
-        if ( p.x - s < xBounds[0] ) {
+        if ( p.x - s < xBounds.vec[0] ) {
             v.x = -v.x;
-            p.x += 2.0*( s + xBounds[0] - p.x );
+            p.x += 2.0*( s + xBounds.vec[0] - p.x );
             bCollideX = true;
-        } else if ( p.x + s > xBounds[1]) {
+        } else if ( p.x + s > xBounds.vec[1] ) {
             // This is the boundary that can move. Add additional component from an infinitely heavier wall collision.            
             v.x = -v.x ;
-            p.x += 2.0*( xBounds[1] -p.x - s );
+            p.x += 2.0*( xBounds.vec[1] -p.x - s );
             bCollideX = true;
             bMovingWall = true;
         }

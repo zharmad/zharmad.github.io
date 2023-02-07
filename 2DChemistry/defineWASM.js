@@ -2,7 +2,7 @@
     Web assembly working area.
 */
 
-// Momery array hosted by JS to handle data transfer between JS and WASM.
+// Memory array hosted by JS to handle data transfer between JS and WASM.
 const memWASM = new WebAssembly.Memory({
   initial: 10,
   maximum: 100,
