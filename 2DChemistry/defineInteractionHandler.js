@@ -381,19 +381,19 @@ class molSystem {
             if ( mol.rotI > 0.0 ) { mol.om = signAM * Math.sqrt( KEnew / mol.rotI ); }
         });
         //console.log( "new angmoment", s2.get_angular_momentums_from_mols() );
-        //console.log( s1.get_total_energy_from_mols(), s2.get_total_energy_from_mols() );
+        //console.log( s1.measure_total_energy_from_mols(), s2.measure_total_energy_from_mols() );
     }
     
     // Rescales all motions in system 2 so as to match the starting energy of system 1 with a DeltaH.
     static rescale_velocities_by_energy_conservation( s1, s2, DeltaH ) {
         if ( undefined === DeltaH ) { DeltaH = 0.0; }
-        const EOld = s1.get_total_energy_from_mols();
-        const ENew = s2.get_total_energy_from_mols();
+        const EOld = s1.measure_total_energy_from_mols();
+        const ENew = s2.measure_total_energy_from_mols();
         const EExcess = EOld - DeltaH - ENew;
         if ( ENew + EExcess < 0) { console.log(ENew, EExcess); throw "Negative output energy found! Aborting."; }                    
         let ratio = Math.sqrt( (ENew + EExcess) / ENew );
         s2.arrMol.forEach( (mol, i) => { mol.rescale_velocities( ratio ); });
-        //console.log( EOld, s2.get_total_energy_from_mols(), DeltaH );
+        //console.log( EOld, s2.measure_total_energy_from_mols(), DeltaH );
     }
     
     calculate_COM_configuration() {
@@ -447,7 +447,7 @@ class molSystem {
             this.TEradials.push( 0.5* mol.mass * sRadial*sRadial );            
             const sTangent = Vector2D.cross( this.vRel[i], this.vecNormal );
             this.TEtangents.push( 0.5* mol.mass * sTangent*sTangent );
-            const RE = mol.get_rotational_energy();
+            const RE = mol.measure_rotational_energy();
             if ( RE == 0.0 ) {
                 this.REradials.push( 0.0 ); this.REtangents.push( 0.0 );
             } else {
@@ -457,7 +457,7 @@ class molSystem {
         });
     }
 
-    get_rotational_energy() {
+    measure_rotational_energy() {
         let ret = 0.0;
         for ( let i = 0; i < this.nMol; i++ ) { ret += this.REradials[i] + this.REtangents[i]; }
         return ret;
@@ -468,9 +468,9 @@ class molSystem {
         for ( let i = 0; i < this.nMol; i++ ) { this.ECollide += this.TEradials[i] + this.REradials[i]; }
     }
 
-    get_total_energy_from_mols() {
+    measure_total_energy_from_mols() {
         let ETot = 0.0;
-        this.arrMol.forEach( ( mol, i ) => { ETot += mol.get_total_energy(); } );
+        this.arrMol.forEach( ( mol, i ) => { ETot += mol.measure_total_energy(); } );
         return ETot;
     }   
 
@@ -607,7 +607,7 @@ class molSystem {
         }
         const mol1 = this.mol1, mol2 = this.mol2;        
         //console.log(`Elastic collision solver between ${mol1.name} and ${mol2.name}`);
-        //console.log( mol1.get_total_energy(), mol2.get_total_energy() );
+        //console.log( mol1.measure_total_energy(), mol2.measure_total_energy() );
         
         const mass1 = mol1.get_mass(), rotI1 = mol1.get_rotI();
         const mass2 = mol2.get_mass(), rotI2 = mol2.get_rotI();
@@ -627,7 +627,7 @@ class molSystem {
         mol1.p.sincr( -1.0 * f / mass1 / sep * pmove, dp );
         mol2.p.sincr(  1.0 * f / mass2 / sep * pmove, dp );
         
-        //console.log( mol1.get_total_energy(), mol2.get_total_energy() );
+        //console.log( mol1.measure_total_energy(), mol2.measure_total_energy() );
         //throw "pause";
     }    
 }
@@ -739,11 +739,11 @@ class reactionDecomposition extends reaction {
 
     update_time_dependence( dt ) { this.probRemain = Math.exp( -dt / this.lifetimeActivated ); }    
     //check_angles( obj ) { return true; }
-    get_available_energy( obj ) { return obj.mol.get_rotational_energy() ; }
+    get_available_energy( obj ) { return obj.mol.measure_rotational_energy() ; }
     
     process_reaction( obj ) {
         const mol = obj.mol;
-        var RE = mol.get_rotational_energy() ;
+        var RE = mol.measure_rotational_energy() ;
         if ( RE > this.EActivation && Math.random() < this.probRemain ) {
             //Successful reaction. Compute product kinetic properties and pass back to the simulation.
             // this.deltaH ; 
@@ -785,7 +785,7 @@ class reactionCollisionAidedDecomposition extends reaction {
     
     process_reaction( obj ) {
         
-        const EOldCheck = obj.get_total_energy_from_mols();
+        const EOldCheck = obj.measure_total_energy_from_mols();
 
         // Work out the elastic collision. Then decompose mol1 into the prodcut molecules.
         obj.resolve_collision();
@@ -805,7 +805,7 @@ class reactionCollisionAidedDecomposition extends reaction {
         console.log(`DecompositionM reaction occurred: ${mol1.name} + ${mol2.name} -> ${mNew1.name} + ${mNew2.name} + ${mol2.name}`);
         sysNew.check_integrity();
         
-        const ENewCheck = sysNew.get_total_energy_from_mols();
+        const ENewCheck = sysNew.measure_total_energy_from_mols();
         console.log( `Checking energy totals: ${EOldCheck} = ${ENewCheck} + ${this.DeltaH}` );
         return [ mNew1, mNew2, mNew3 ];
  
@@ -819,7 +819,7 @@ class reactionCollisionAidedDecomposition extends reaction {
     Normally, the excess energy terms are converted into the molecule's internal freedoms.
     They are then often re-emitted as photon(s) when electrons quickly hop back down from their initial excited states.
     We're currently hiding all this as if they don't exist.
-    //const EExcess = ( obj.TETangent + obj.REinitial - mNew.get_rotational_energy() ) + (obj.TERadial - this.DeltaH);
+    //const EExcess = ( obj.TETangent + obj.REinitial - mNew.measure_rotational_energy() ) + (obj.TERadial - this.DeltaH);
 */
 class reactionCombination extends reaction {
     // Combine two polyatomic molecules into one polyatomic species. Yes to initial angle check.
@@ -848,9 +848,9 @@ class reactionCombination extends reaction {
         //if ( Number.isNaN( mNew.om ) ) { console.log("WARNING: rotational speed is NaN!"); }
         //mNew.debug();
                 
-        let TEnew = mNew.get_kinetic_energy(), REnew = mNew.get_rotational_energy() ;
+        let TEnew = mNew.measure_kinetic_energy(), REnew = mNew.measure_rotational_energy() ;
         obj.calculate_component_energies();
-        const EExcess = obj.get_non_TECOM_energies() - mNew.get_rotational_energy() - this.DeltaH;            
+        const EExcess = obj.get_non_TECOM_energies() - mNew.measure_rotational_energy() - this.DeltaH;            
         let ERatio = ( REnew + TEnew + EExcess )/ (REnew + TEnew);            
         if ( ERatio < 0 || Number.isNaN( ERatio ) ) { console.log(REnew, TEnew, EExcess, ERatio); throw "Negative output energy found! Aborting."; }
         // Rescale energies so as to conserve energy and re-break conservation of momentum.
@@ -859,7 +859,7 @@ class reactionCombination extends reaction {
         // TEnew *= ERatio ; REnew *= ERatio;
         // mNew.v.scale( Math.sqrt( 2.0 * TEnew / (mNew.mass * mNew.v.norm2()) ) ); // 2 of 3 degrees of freedom to KE.
         // mNew.om = Math.sign( mNew.om ) * Math.sqrt( 2.0 * REnew / mNew.rotI ); // 1 of 3 degrees of freedom.
-        // let Ediff = mNew.get_total_energy() - mol1.get_total_energy() - mol2.get_total_energy();
+        // let Ediff = mNew.measure_total_energy() - mol1.measure_total_energy() - mol2.measure_total_energy();
         // console.log( Ediff, this.DeltaH , ERatio ) ;
 
         //console.log(`Combination reaction occurred: ${mol1.name} + ${mol2.name} -> ${mNew.name}`);
@@ -893,7 +893,7 @@ class reactionTransfer extends reaction {
             
     process_reaction( obj ) {
         
-        const ETotalOld = obj.get_total_energy_from_mols();
+        const ETotalOld = obj.measure_total_energy_from_mols();
         // Successful reaction.
         //console.log(`Successful reaction between ${obj.mol1.name} and ${obj.mol2.name}`);
         // Check if the reactants need to be flipped so-as to generate a new product.
@@ -929,8 +929,8 @@ class reactionTransfer extends reaction {
         // mNew2.set_theta( this.productAngles[1] + theta );
         
         const sysNew = new molSystem( [ mNew1, mNew2 ]);
-        //console.log( ETotalOld, sysNew.get_total_energy_from_mols() );
-        if ( Number.isNaN ( sysNew.get_total_energy_from_mols() ) ) { throw "NaN detected!"; }
+        //console.log( ETotalOld, sysNew.measure_total_energy_from_mols() );
+        if ( Number.isNaN ( sysNew.measure_total_energy_from_mols() ) ) { throw "NaN detected!"; }
         //Enact COM-aligned momentum transfer post elastic-collision. Assume that mass is lost by the first molecule and equal mass is gained by the second.
         if ( true ) {
             const mDiff = Math.abs(mol1.mass - mNew1.mass);
@@ -943,20 +943,20 @@ class reactionTransfer extends reaction {
         }
         
         // Rescale energies so as to conserve energy instead of momentum.
-        // console.log( ETotalOld, sysNew.get_total_energy_from_mols() );
-        // if ( Number.isNaN ( sysNew.get_total_energy_from_mols() ) ) { throw "NaN detected!"; }            
+        // console.log( ETotalOld, sysNew.measure_total_energy_from_mols() );
+        // if ( Number.isNaN ( sysNew.measure_total_energy_from_mols() ) ) { throw "NaN detected!"; }            
         molSystem.rescale_velocities_by_energy_conservation( obj, sysNew, this.DeltaH );
         
         //console.log(`Transfer reaction occurred: ${mol1.name} + ${mol2.name} -> ${mNew1.name} + ${mNew2.name}`);
         //sysNew.check_integrity();
 
-        //console.log( `Energy transfer: ${ETotalOld} - ${this.DeltaH} -> ${sysNew.get_total_energy_from_mols()}` );
+        //console.log( `Energy transfer: ${ETotalOld} - ${this.DeltaH} -> ${sysNew.measure_total_energy_from_mols()}` );
         if ( Number.isNaN( mNew1.v.x ) || Number.isNaN( mNew2.v.x ) ) {
             mol1.debug();
             mol2.debug();
             mNew1.debug();
             mNew2.debug();
-            console.log( ETotalOld, '-', this.DeltaH, '->', sysNew.get_total_energy_from_mols() );
+            console.log( ETotalOld, '-', this.DeltaH, '->', sysNew.measure_total_energy_from_mols() );
             throw "NaN velocity values have been detected in a transfer reaction: ${mol1.name} + ${mol2.name} -> ${mNew1.name} + ${mNew2.name}!";
         } 
         

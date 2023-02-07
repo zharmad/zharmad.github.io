@@ -5,24 +5,22 @@
 // setup HTML5 canvas
 //const canvasSim = document.querySelector("canvasSimulation");
 const canvasSim = document.getElementById("canvasSimulation");
+const containerSim = document.getElementById("containerSim");
 const ctxSim = canvasSim.getContext('2d');
 
 const widthAll = window.innerWidth;
-const widthSim  = canvasSim.width = Math.floor(0.75*widthAll)-50;
-const heightSim = canvasSim.height = window.innerHeight-80;
+//const widthSim  = canvasSim.width = Math.floor(0.75*widthAll)-50;
+//const heightSim = canvasSim.height = window.innerHeight-80;
+const widthSim  = canvasSim.width  = containerSim.clientWidth-4;
+const heightSim = canvasSim.height = containerSim.clientHeight-4;
+
 globalVars.worldWidth = canvasSim.width ;
 globalVars.worldHeight = canvasSim.height ;
 
-var widthSidebarMax = Math.floor( 0.5 * window.innerWidth);
-var widthSidebarParentOpen   = Math.floor(0.25*widthAll);
-const widthSidebarParentClosed = 10;
-var widthSidebar = widthSidebarParentOpen - widthSidebarParentClosed;
-
-const sizeZero     = "0px";
-var strOpenTab = 'controls';
-
 // Setup HTML5 GUI Sections. Use global variables to initialise all values rather than the HTML presets.
-function update_slider_values( slider, args ) { slider.min = args.min; slider.max = args.max; slider.value = args.value; }
+function update_slider_values( slider, args ) {
+    slider.min = args.min; slider.max = args.max; slider.value = args.value; slider.step = args.step;
+}
 
 // Non-live-updating buttons.
 const sliderLengthScale    = document.getElementById("sliderLengthScale");
@@ -34,14 +32,31 @@ sliderLengthScale.oninput = function() {
     textFieldLengthScale.innerHTML = this.value;
 } 
 
-const sliderNumMolecules = document.getElementById("sliderNumMolecules");
-const textFieldNumMolecules = document.getElementById("textFieldNumMolecules");
-update_slider_values( sliderNumMolecules, { value: globalVars.numMolecules, min: globalVars.numMoleculesMin, max: globalVars.numMoleculesMax });
-textFieldNumMolecules.innerHTML = sliderNumMolecules.value;
-sliderNumMolecules.oninput = function() {
-    globalVars.numMolecules   = this.value;
-    textFieldNumMolecules.innerHTML = this.value;    
-} 
+// const sliderNumMolecules = document.getElementById("sliderNumMolecules");
+// const textFieldNumMolecules = document.getElementById("textFieldNumMolecules");
+// update_slider_values( sliderNumMolecules, { value: globalVars.numMolecules, min: globalVars.numMoleculesMin, max: globalVars.numMoleculesMax });
+// textFieldNumMolecules.innerHTML = sliderNumMolecules.value;
+// sliderNumMolecules.oninput = function() {
+    // globalVars.numMolecules   = this.value;
+    // textFieldNumMolecules.innerHTML = this.value;    
+// } 
+const sliderDensMolecules    = document.getElementById("sliderDensMolecules");
+const textFieldDensMolecules = document.getElementById("textFieldDensMolecules");
+const textFieldNumMolecules  = document.getElementById("textFieldNumMolecules");
+update_slider_values( sliderDensMolecules, {
+    value: globalVars.densMolecules,
+    min: globalVars.densMoleculesMin,
+    max: globalVars.densMoleculesMax,
+    step: globalVars.densMoleculesStep
+});
+textFieldDensMolecules.innerHTML = textFieldDensMolecules.value;
+textFieldNumMolecules.innerHTML = 'unknown' ;
+sliderDensMolecules.oninput = function() {
+    globalVars.densMolecules = this.value;
+    textFieldDensMolecules.innerHTML = this.value;
+    const numEst = this.value * globalVars.worldWidth * globalVars.worldHeight * globalVars.lengthScale**2.0 * 1e-6;
+    textFieldNumMolecules.innerHTML = numEst.toFixed(0);
+}
 
 const togglePresetsOverwriteParams = document.getElementById("togglePresetsOverwriteParams");
 togglePresetsOverwriteParams.checked = globalVars.bPresetsOverwriteParams;
@@ -151,10 +166,14 @@ const chartDoughnutGr  = new Chart( canvasDoughnutGr, { type: 'doughnut',
 chartDoughnutGr.options.datasets.doughnut.borderColor='#000';
 chartDoughnutGr.options.plugins.title.display=true;
 chartDoughnutGr.options.plugins.title.text='Current Composition';
+chartDoughnutGr.options.plugins.title.padding=2;
 //chartDoughnutGr.options.responsive = true;
 chartDoughnutGr.options.maintainAspectRatio = false;
 chartDoughnutGr.options.animation.duration = 600;
 
+
+togglePlotTemperature = document.getElementById('togglePlotTemperature');
+togglePlotComposition = document.getElementById('togglePlotComposition');
 /*
     Line Graph GUI elements. Matches content on the rspective tab.
 */
@@ -162,7 +181,7 @@ function toggle_plot_temperature( bChecked ) {
     if ( bChecked ) {
         canvasLineGr1.style.display = 'block';
         chartLineGr1.bUpdate = true;        
-        chartLineGr1.update();        
+        chartLineGr1.update();
         //canvasLineGr.style.visibility = 'visible';
     } else {
         chartLineGr1.bUpdate = false;
@@ -177,8 +196,8 @@ chartLineGr1.options.scales.x.title.text='Time (ps)';
 chartLineGr1.options.scales.x.type='linear';
 chartLineGr1.options.scales.x.position='bottom';
 chartLineGr1.options.scales.y.title.display=true;
-chartLineGr1.options.scales.y.title.text='Temperature (K)';
-chartLineGr1.options.scales.y.ticks.display=true;
+//chartLineGr1.options.scales.y.title.text='Temperature (K)';
+//chartLineGr1.options.scales.y.ticks.display=true;
 chartLineGr1.options.animation.duration=0;
 chartLineGr1.bUpdate = true;
 //chartDoughnutGr.options.datasets.doughnut.borderColor='#000';
@@ -222,7 +241,8 @@ molLib = new MoleculeLibrary();
 molLib.add_all_known_molecule_types();
 sim = new Simulation();
 sim.set_molecule_library( molLib );
-sim.setup_graphical_context(ctxSim, globalVars.worldWidth, globalVars.worldHeight, globalVars.refreshAlpha); // In Pixels.
+sim.setup_graphical_context(ctxSim, globalVars.refreshAlpha); // In Pixels.
+// Setup the initial parameters from globals.
 sim.update_values_from_globals();
 
 // Hook in the chart variables.
@@ -236,6 +256,7 @@ sim.link_current_stats_text_fields({
     numMolecules: document.getElementById("textFieldCurrentNumMolecules"),
     temperature: document.getElementById("textFieldCurrentTemperature"),
     volume: document.getElementById("textFieldCurrentVolume"),
+    //pressure: document.getElementById("textFieldCurrentPressure"),
 })
 
 /* Finalise initial setup. Hack to temporarily allow the HTML override values to be read and encoded. */
@@ -314,94 +335,188 @@ function regenerate_simulation(){
     update_composition_GUI_from_gasComp();
 }
 
-/* Functions to control the dimensions of each side panel. */
-var x = 0, y = 0;
-var w = 0, h = 0;
+// Line Graph 1
+const buttonLineGraph1Contents = document.getElementById('buttonLineGraph1Contents');
+function choose_line_graph_1_contents(arr) {
+    if ( 1 === arr.length ) {
+        buttonLineGraph1Contents.innerHTML = arr[0];
+    } else {
+        buttonLineGraph1Contents.innerHTML = 'multiple';
+    }
+    sim.displayLineGr1 = arr;
+    sim.sync_line_graph_1();
+    sim.chartLineGr1.update();
+}
 
-const elementMainWindow      = document.getElementById("mainWindow");
-const elementSidebarParent   = document.getElementById('sidebarParent');
-const elementSidebarHandle   = document.getElementById('sidebarHandle');
-const elementSidebars = {};
-elementSidebars['presets'] = document.getElementById("sidebarPresets");
-elementSidebars['controls'] = document.getElementById("sidebarControls");
-elementSidebars['composition'] = document.getElementById("sidebarComposition");
-elementSidebars['analysisLine'] = document.getElementById("sidebarAnalysis0");
-elementSidebars['analysisBar'] = document.getElementById("sidebarAnalysis1");
+// Setup system to control side bars.
+class DynamicSideTabs {
+    constructor( elementMain, elementParent, elementDivider ) {
+        const widthAll = window.innerWidth;
+        
+        this.set_main_window( elementMain );
+        this.set_container_element( elementParent );
+        this.set_divider_element( elementDivider );
+        
+        this.widthMax = Math.floor( 0.5 * widthAll) ;
+        this.widthParentOpen = this.elemContainer.offsetWidth ; // rather than clientWidth
+        this.widthParentClosed = 10;
+        this.widthOpen = this.widthParentOpen - this.widthParentClosed;
+        this.sizeZero = "0px";
+        this.tabID = undefined;
+        this.bOpen = false;
+        
+        this.x = 0;
+        this.y = 0;
+        this.w = 0;
+        this.h = 0;
+        
+        this.elemHandle = undefined;           
+        this.elemTabs = {};
+    }
+    
+    set_main_window( e ) { this.elemMain = e; }    
+    set_container_element( e ) { this.elemContainer = e; }    
+    set_divider_element( e ) { this.elemDivider = e; }
+    
+    set_handle_element( elem, ev ) {
+        this.elemHandle = elem;
+        // elem.addEventListener( 'mousedown', ev );
+    }
+    add_tab( key, e ) { this.elemTabs[key] = e; }
+    
+    set_reference_location( x, y ) {
+        this.x = x; this.y = y ;
+        
+        // Calculate the dimension of container element for later use.
+        const styles = window.getComputedStyle(this.elemContainer);
+
+        this.w = parseInt(styles.width, 10);
+        this.h = parseInt(styles.height, 10);
+    }
+    
+    update_reference_location( x, y ) {
+        // How far the mouse has been moved
+        const dx = this.x - x;
+        //const dy = e.clientY - y;
+
+        // Adjust the dimension of element
+        const temp = this.w + dx;
+        //elementSidebarParent.style.width = `${temp}px`;
+        this.widthParentOpen = Math.min(temp, this.widthMax);    
+        this.widthOpen = this.widthParentOpen - this.widthParentClosed;
+        //ele.style.height = `${h + dy}px`;        
+    }
+    
+    update() {
+        const wO = `${this.widthParentOpen}px`;
+        const wC = `${this.widthParentClosed}px`;
+        const w1 = `${this.widthOpen}px`;
+        const w0 = this.sizeZero;
+        if ( this.bOpen ) {
+            this.elemMain.style.marginRight = wO; this.elemContainer.style.width = wO;
+            Object.entries(this.elemTabs).forEach(([key, tab]) => {
+                tab.style.width = ( key == this.tabID ) ? w1 : w0;
+            });
+        } else {
+            this.elemMain.style.marginRight = wC; this.elemContainer.style.width = wC;            
+            Object.values(this.elemTabs).forEach( tab => {
+                tab.style.width = w0;
+            });
+        }
+        
+        this.refresh_tab_graph_updates();
+    }
+    
+    refresh_tab_graph_updates() {
+        //Pause updating of some graphs when the relevant sidebar is not open.
+        switch( this.tabID ) {
+            case 'analysisLine':
+                chartLineGr1.bUpdate = true; chartLineGr2.bUpdate = true;
+                chartLineGr1.update();
+                chartLineGr2.update();
+                chartBarGr.bUpdate = false;
+                break;
+            case 'analysisBar':
+                chartBarGr.bUpdate = true; sim.inventory_bar_graph();
+                chartLineGr1.bUpdate = false; chartLineGr2.bUpdate = false;            
+                break;
+            default:
+                chartLineGr1.bUpdate = false; chartLineGr2.bUpdate = false;
+                chartBarGr.bUpdate = false;        
+        }        
+    }
+    
+    toggle() {
+        this.bOpen = !this.bOpen;
+        this.update();
+    }
+}
 
 const mouseDownHandlerSidebarResize = function (e) {
-    // Get the current mouse position
-    x = e.clientX;
-    y = e.clientY;
-    
-    // Calculate the dimension of element
-    const styles = window.getComputedStyle(elementSidebarParent);
-    w = parseInt(styles.width, 10);
-    h = parseInt(styles.height, 10);
-    //console.log(w, h);
-
+    if ( ! controlsSidebar.bOpen ) { controlsSidebar.bOpen = true; }
+    // Get the current mouse position    
+    controlsSidebar.set_reference_location( e.clientX, e.clientY );
     // Attach the listeners to `document`
     document.addEventListener('mousemove', mouseMoveHandlerSidebarResize);
     document.addEventListener('mouseup', mouseUpHandlerSidebarResize);
 };
 
-const mouseMoveHandlerSidebarResize = function (e) {
-    // How far the mouse has been moved
-    const dx = x - e.clientX;
-    //const dy = e.clientY - y;
-
-    // Adjust the dimension of element
-    const temp = w + dx;
-    //elementSidebarParent.style.width = `${temp}px`;
-    widthSidebarParentOpen = Math.min(temp, widthSidebarMax);    
-    widthSidebar = widthSidebarParentOpen - widthSidebarParentClosed;
-    update_sidebar_dimensions(strOpenTab);
-    //ele.style.height = `${h + dy}px`;
+const mouseMoveHandlerSidebarResize = function (e) {   
+    controlsSidebar.update_reference_location( e.clientX, e.clientY );
+    controlsSidebar.update();
 };
 
 const mouseUpHandlerSidebarResize = function () {
     // Remove the handlers of `mousemove` and `mouseup`
     document.removeEventListener('mousemove', mouseMoveHandlerSidebarResize);
     document.removeEventListener('mouseup', mouseUpHandlerSidebarResize);
-    update_sidebar_dimensions(strOpenTab);
+    controlsSidebar.update();
 };
 
-function update_sidebar_dimensions(s) {
-    if ( s != 'none' ) {
-        elementMainWindow.style.marginRight = `${widthSidebarParentOpen}px`;            
-        elementSidebarParent.style.width    = `${widthSidebarParentOpen}px`;        
-        for ( key in elementSidebars ) {
-            if ( key == s ) { elementSidebars[key].style.width = `${widthSidebar}px`; } else { elementSidebars[key].style.width = sizeZero; }
-        }
-    } else {
-        elementMainWindow.style.marginRight = `${widthSidebarParentClosed}px`;            
-        elementSidebarParent.style.width    = `${widthSidebarParentClosed}px`;        
-        for ( key in elementSidebars ) { elementSidebars[key].style.width = sizeZero; }
-    }
-    
-    //Pause updating of some graphs when the sidebar is closed.
-    if ( 'analysisBar' === s ) {
-        chartBarGr.bUpdate = true; sim.inventory_bar_graph();
-    } else {
-        chartBarGr.bUpdate = false;
+//First touch only.
+const touchStartHandlerSidebarResize = function (e) {
+    if ( ! controlsSidebar.bOpen ) { controlsSidebar.bOpen = true; }
+    controlsSidebar.set_reference_location( e.touches[0].pageX, e.touches[0].pageY );
+    // Attach the listeners to `document`
+    document.addEventListener('touchmove', touchMoveHandlerSidebarResize);
+    document.addEventListener('touchend', touchEndHandlerSidebarResize);
+};
+
+const touchMoveHandlerSidebarResize = function (e) {   
+    controlsSidebar.update_reference_location( e.touches[0].pageX, e.touches[0].pageY );
+    controlsSidebar.update();
+};
+
+const touchEndHandlerSidebarResize = function () {
+    // Remove the handlers of `mousemove` and `mouseup`
+    document.removeEventListener('touchmove', touchMoveHandlerSidebarResize);
+    document.removeEventListener('touchend', touchEndHandlerSidebarResize);
+    controlsSidebar.update();
+};
+
+
+function toggle_sidebars( x ) {
+    if ( controlsSidebar.tabID === x || undefined === x ) {
+        controlsSidebar.toggle();        
+    } else {        
+        controlsSidebar.tabID = x;
+        controlsSidebar.bOpen = true;
+        controlsSidebar.update();            
     }
 }
 
-function open_sidebar(x) { strOpenTab = x;  update_sidebar_dimensions(strOpenTab); }
-function close_sidebars() { strOpenTab = 'none'; update_sidebar_dimensions(strOpenTab); }
-
-// Initialise Sidebar settings.
-elementSidebarHandle.addEventListener('mousedown', mouseDownHandlerSidebarResize);
-update_sidebar_dimensions(strOpenTab);
-// 
 
 // Preset Button Functions.
 function overwrite_global_values( strType ) {
     
     const p = globalVars.presets[strType];    
-    sliderNumMolecules.value = p.numMolecules;
-    sliderNumMolecules.oninput();
+    
     sliderLengthScale.value = p.lengthScale;
-    sliderLengthScale.oninput();
+    sliderLengthScale.oninput();        
+    // sliderNumMolecules.value = p.numMolecules;
+    // sliderNumMolecules.oninput();
+    sliderDensMolecules.value = p.densMolecules;
+    sliderDensMolecules.oninput();
     sliderWorldTemperature.value = p.worldTemperature;
     sliderWorldTemperature.oninput();
     sliderTimeDelta.value = p.timeDelta;
@@ -441,7 +556,7 @@ function generate_preset_simulation( strType ) {
     if ( undefined != p.componentHidePlot ) {
         chartLineGr2.data.datasets.forEach((dataSet, i) => {
             var meta = chartLineGr2.getDatasetMeta(i);
-            meta.hidden = ( p.componentHidePlot.indexOf( meta.label ) > -1 );
+            meta.hidden = ( p.componentHidePlot.indexOf( meta._dataset.label ) > -1 );
         });
         chartLineGr2.update();
     }
@@ -533,6 +648,27 @@ function update_composition_GUI_from_gasComp() {
         arrCompositionGUI[i].ratioField.innerHTML = val ;
     }
 }
+
+const controlsSidebar = new DynamicSideTabs(
+    document.getElementById("mainWindow"),
+    document.getElementById('sidebarParent'),
+    document.getElementById('sidebarDivider'),
+);
+const elementSidebarHandle = document.getElementById('sidebarHandleDiv') ; 
+controlsSidebar.set_handle_element( elementSidebarHandle );
+elementSidebarHandle.addEventListener( 'mousedown', mouseDownHandlerSidebarResize );
+elementSidebarHandle.addEventListener( 'touchstart', touchStartHandlerSidebarResize );
+
+controlsSidebar.add_tab( 'presets',      document.getElementById("sidebarPresets") );
+controlsSidebar.add_tab( 'controls',     document.getElementById("sidebarControls") );
+controlsSidebar.add_tab( 'composition',  document.getElementById("sidebarComposition") );
+controlsSidebar.add_tab( 'analysisLine', document.getElementById("sidebarAnalysis0") );
+controlsSidebar.add_tab( 'analysisBar',  document.getElementById("sidebarAnalysis1") );
+
+// Initialise Sidebar settings on first load.
+controlsSidebar.tabID = globalVars.initialOpenTab;
+controlsSidebar.bOpen = true;
+controlsSidebar.update();
 
 /* Webassembly import section */
 let collision_check_wasm = null;

@@ -11,26 +11,27 @@
 
     <!-- Main Window. Shows the molecules and main navigation buttons. -->
     <div id="mainWindow">
-        <p>
-            <button class="buttonOpenSidebar" onclick="open_sidebar('presets')">☀ Presets</button>
-            <button class="buttonOpenSidebar" onclick="open_sidebar('composition')">🥧 Composition</button>            
-            <button class="buttonOpenSidebar" onclick="open_sidebar('controls')">☰ Controls</button>
-            <button class="buttonOpenSidebar" onclick="open_sidebar('analysisLine')">📈 Time-plots</button>
-            <button class="buttonOpenSidebar" onclick="open_sidebar('analysisBar')">📊 Energies</button>
-        </p>
-        <canvas id="canvasSimulation"></canvas>
-        
+        <div id="containerSidebarButtons">
+            <button class="buttonOpenSidebar" onclick="toggle_sidebars('presets')">☀ Presets</button>
+            <button class="buttonOpenSidebar" onclick="toggle_sidebars('composition')">🥧 Composition</button>            
+            <button class="buttonOpenSidebar" onclick="toggle_sidebars('controls')">☰ Controls</button>
+            <button class="buttonOpenSidebar" onclick="toggle_sidebars('analysisLine')">📈 Plots</button>
+            <button class="buttonOpenSidebar" onclick="toggle_sidebars('analysisBar')">📊 Plots</button>
+        </div>
+        <div id="containerSim">
+            <canvas id="canvasSimulation"></canvas>
+        </div>
     </div>
 
 
-    <div id="sidebarParent" class="sidebarParent">
+    <div id="sidebarParent">
         <!-- Sidebar Handle to act as a visual border w.r.t. the main window, and manage dynamic resizing -->    
-        <div id="sidebarHandle" class="sidebarHandle"></div>
+        <div id="sidebarDivider" class="sidebarDivider"></div>
         
         <!-- Sidebar to make easy presets -->
         <div id="sidebarPresets" class="sidebarRight">
             <p>
-                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run</button>
                 <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
@@ -50,7 +51,7 @@
         <!-- Note: Values will be overrriden by global values when main.js is loaded. -->
         <div id="sidebarControls" class="sidebarRight">
             <p>
-                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run</button>
                 <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
@@ -61,6 +62,7 @@
             Molecules: <span id="textFieldCurrentNumMolecules"></span></br>
             Temperature: <span id="textFieldCurrentTemperature"></span> K</br>
             Volume: <span id="textFieldCurrentVolume"></span> nm²</br>
+            <!-- Pressure: <span id="textFieldCurrentPressure"></span> amu ps⁻²</br> -->
             </p>
             
             <hr width="50%" align="center" color="grey" size="2">
@@ -106,7 +108,7 @@
 
         <div id="sidebarComposition" class="sidebarRight">
             <p>
-                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run</button>
                 <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
@@ -118,9 +120,18 @@
             
             <hr width="50%" align="center" color="grey" size="2">
             <p>Set initial composition:</p>
+
+
+            <!--            
             <div class="divDynamicBox">
                 <p>#-Molecules: <span id="textFieldNumMolecules"></span></p>
                 <input type="range" min="1" max="500" value="50" class="slider" id="sliderNumMolecules">
+            </div>            
+            (~<span id="textFieldNumMolecules"></span> molecules)</p>
+            -->            
+            <div class="divDynamicBox">
+                <p>Density: <span id="textFieldDensMolecules"></span> nm⁻³, or ~<span id="textFieldNumMolecules"></span> molecules</p>
+                <input type="range" min="0.1" max="5.0" step="0.05" value="0.3" class="slider" id="sliderDensMolecules">
             </div>
             <hr width="50%" align="center" color="grey" size="2">
             <div id="divInputComponent0" class="divDynamicBox">
@@ -152,15 +163,26 @@
         <!-- Sidebar for time-based analysis -->
         <div id="sidebarAnalysis0" class="sidebarRight">
             <p>
-                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run</button>
                 <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
             
             <hr width="50%" align="center" color="grey" size="2">
-
-            <label class="switchToggle"><input type="checkbox" id="togglePlotTemperature" checked oninput="toggle_plot_temperature( this.checked )"><span class="sliderToggle round"></span></label>
-            Show Temperature Plot
+            
+            <label class="switchToggle"><input type="checkbox" id="togglePlotTemperature" checked oninput="toggle_plot_temperature( this.checked )"><span class="sliderToggle round"></span></label>            
+            Show plot of 
+            <div class="dropdown">
+                <button id="buttonLineGraph1Contents" class="buttonDropDown">temperature</button>
+                <div class="dropdown-content">
+                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['temperature'])">temperature</a>
+                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['numMolecules'])"># molecules</a>
+                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['volume'])">volume</a>
+                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['density'])">density</a>
+                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['pressure'])">pressure</a>
+                </div>
+            </div>
+            
             <canvas id="canvasLineGraph1" height="250" class="canvasGraph"></canvas>           
             
             <hr width="50%" align="center" color="grey" size="2">
@@ -201,7 +223,7 @@
         <!-- Sidebar for bar-based analysis -->
         <div id="sidebarAnalysis1" class="sidebarRight">
             <p>
-                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run/Pause</button>
+                <button class="buttonSimControl" onclick="activate_run_pause_button()">⏯️ Run</button>
                 <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
@@ -210,8 +232,9 @@
             <canvas id="canvasBarGraph" height="200" class="canvasGraph"></canvas>
         </div>
 
-        <div id="sidebarCloseButton" class="sidebarCloseButton">
-            <a href="javascript:void(0)" class="buttonCloseSidebar" onclick="close_sidebars()">×</a>    
+        <div id="sidebarHandleDiv" class="sidebarHandleDiv">
+            ⭾
+            <!-- <a href="javascript:void(0)" class="buttonToggleSidebar" onclick="toggle_sidebars()">⭾</a> -->
         </div>        
     </div>
     

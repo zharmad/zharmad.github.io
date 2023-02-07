@@ -24,11 +24,13 @@ globalVars.temperatureMax = 1000;
 
 globalVars.bHeatExchange = true;
 
-// Determines the zoom level between the simulatiuon and the visualisation.
+// Determines the scaling between the simulation and the default pixel size.
 // Defaults to 1 pixel = 10 pm = 0.1 Angs.
 globalVars.lengthScale    =  10;
 globalVars.lengthScaleMin =  10;
 globalVars.lengthScaleMax =  50;
+
+globalVars.zoomScale      =  10; //This is updated on load according to window size.
 
 // Determines the length of shadows as the screen refreshes each frame.
 globalVars.refreshAlpha = 0.4;
@@ -40,9 +42,20 @@ globalVars.timeDeltaMin =  10.0;
 globalVars.timeDeltaMax = 200.0;
 
 // Simulation specific parameters.
-globalVars.numMolecules    =  200;
-globalVars.numMoleculesMin =  100;
-globalVars.numMoleculesMax = 1000;
+// globalVars.numMolecules    =  200;
+// globalVars.numMoleculesMin =  100;
+// globalVars.numMoleculesMax = 1000;
+globalVars.densMolecules     =  0.75;
+globalVars.densMoleculesMin  =  0.05;
+globalVars.densMoleculesMax  =  3.00;
+globalVars.densMoleculesStep =  0.05;
+
+// molecules per nm^2
+// Notes: an oxygen molecule has an area of ~0.1 nm^2
+// globalVars.densityMolecules     =  0.3;
+// globalVars.densityMoleculesMin  =  0.00;
+// globalVars.densityMoleculesMax  =  1.00;
+// globalVars.densityMoleculesStep =  0.01;
 globalVars.statisticsUpdateInterval = 100;
 
 // Defined by the device screen and the length scale variable
@@ -51,6 +64,9 @@ globalVars.worldHeight = undefined;
 
 globalVars.initialPreset = "nitrogen dioxide";
 globalVars.bPresetsOverwriteParams = true; //Prevent the initial loading from overwriting HTML overrides.
+
+//Tab.
+globalVars.initialOpenTab='controls';
 
 // Molecular colouring section.
 globalVars.moleculeColourScheme = "molecule"; //Choices: 'atom' or 'molecule'
@@ -98,7 +114,8 @@ temp.lengthScale = 20;
 temp.timeDelta = 20;
 temp.worldTemperature = 300;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 124;
+//temp.numMolecules = 124;
+temp.densMolecules = 0.45;
 temp.numComponentsShow = 5;
 temp.componentIDs    = [ "He", "Ne", "Ar", "Kr", "Xe" ];
 temp.componentRatios = [ 16, 8, 4, 2, 1 ];
@@ -108,7 +125,8 @@ temp.lengthScale = 30;
 temp.timeDelta = 50;
 temp.worldTemperature = 300;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 400;
+//temp.numMolecules = 400;
+temp.densMolecules = 0.7;
 temp.numComponentsShow = 4;
 temp.componentIDs    = [ "N₂", "O₂", "Ar", "H₂O" ];
 temp.componentRatios = [ 0.78, 0.21, 0.01, 0.02 ];
@@ -122,7 +140,8 @@ temp.lengthScale  = 30;
 temp.timeDelta    = 200;
 temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 200;
+//temp.numMolecules = 300;
+temp.densMolecules = 0.5;
 temp.numComponentsShow = 2;
 temp.componentIDs    = [ "NO₂", "N₂O₄" ];
 temp.componentRatios = [ 0.6, 0.4 ];
@@ -132,7 +151,8 @@ temp.lengthScale  = 20;
 temp.timeDelta    = 20;
 temp.worldTemperature = 600;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 300;
+//temp.numMolecules = 300;
+temp.densMolecules = 1.2;
 temp.numComponentsShow = 3;
 temp.componentIDs    = [ "H₂", "I₂", "HI", "H•", "I•" ];
 temp.componentRatios = [ 0.5, 0.5, 0.0 ];
@@ -143,7 +163,8 @@ temp.lengthScale = 30;
 temp.timeDelta = 40;
 temp.worldTemperature = 300;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 400;
+//temp.numMolecules = 400;
+temp.densMolecules = 0.7;
 temp.numComponentsShow = 3;
 temp.componentIDs    = [ "N₂", "O₂", "O₃", "O•" ];
 temp.componentRatios = [ 0.78, 0.21, 0.01, 0.0 ];
@@ -154,7 +175,8 @@ temp.lengthScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 700;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 400;
+//temp.numMolecules = 400;
+temp.densMolecules = 0.8;
 temp.numComponentsShow = 3;
 temp.componentIDs    = [ "H₂", "O₂", "H₂O", "O•", "H•", "OH•" ];
 temp.componentRatios = [ 0.67, 0.33, 0.0 ];
@@ -165,7 +187,8 @@ temp.lengthScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 700;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 400;
+//temp.numMolecules = 400;
+temp.densMolecules = 0.8;
 temp.numComponentsShow = 5;
 temp.componentIDs    = [ "H₂", "O₂", "H₂O", "H₂O₂", "O•", "H•", "OH•", "HO₂•" ]; //"O₃", 
 temp.componentRatios = [ 0.67, 0.33, 0.0 ];
@@ -176,7 +199,8 @@ temp.lengthScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 600;
 temp.bDoHeatExchange = true;
-temp.numMolecules = 500;
+//temp.numMolecules = 500;
+temp.densMolecules = 0.8;
 temp.numComponentsShow = 4;
 temp.componentIDs    = [ "C₂H₆", "CH₄", "O₂", "Ar", "CO₂", "H₂O", "H₂", "O•", "H•", "OH•", "H₂O₂", "HO₂•", "CH₃•", "CO", "CH₂O", "CH₃OH", "C₂H₂", "C₂H₄", "CH₂CO" ];
 temp.componentRatios = [ 0.1, 0.2, 0.65, 0.05 ];

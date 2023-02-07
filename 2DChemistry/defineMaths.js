@@ -87,6 +87,15 @@ function randomRGB() {
     return `rgb(${random(0, 255)},${random(0, 255)},${random(0, 255)})`;
 }
 
+function array_average( v ) {
+    const n = v.length;
+    let tot = 0.0;
+    for ( let i = 0; i < n; i++ ) {
+        tot += v[i]
+    }
+    return tot/n;
+}
+
 // 2D Vector functions
 class Vector2D {
     constructor( x, y ) { this.vec = [x,y] ; }
@@ -120,13 +129,14 @@ class Vector2D {
         let y = v.vec[0] * Math.sin(th) + v.vec[1] * Math.cos(th) ;
         return new Vector2D( x, y );
     }
+    static duplicate( v ) { return new Vector2D( v.vec[0], v.vec[1] ); }
     
     static UnitVector( theta ){ return new Vector2D( Math.cos(theta), Math.sin(theta) ); }
     
     // Object functions. 
     debug() { console.log(`Values: [${this.vec[0]},${this.vec[1]}]`); }
-    duplicate() { return new Vector2D( this.vec[0], this.vec[1] ); }
-    copy() { return this.duplicate(); }
+    
+    copy() { return Vector2D.duplicate( this ); }
     set_to( v ) { this.vec[0] = v.vec[0] ; this.vec[1] = v.vec[1]; }
 
     scaled_copy( s ) { return new Vector2D( s*this.vec[0], s*this.vec[1] ); }
@@ -174,7 +184,7 @@ class Vector2D {
     }
     
     component_along( v ) {
-        let ret = v.duplicate();
+        let ret = Vector2D.duplicate( v );
         ret.scale( this.dot(v) / v.norm2() );
         return ret;
     }

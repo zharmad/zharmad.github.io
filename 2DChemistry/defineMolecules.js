@@ -289,10 +289,10 @@ class Molecule {
     get_colour() { return this.colour; }
    
     //Report in kJ/mol rather than kg.m^2/s^2 
-    get_kinetic_energy() { return 0.5 * this.mass * this.v.norm2(); }
-    get_rotational_energy() { return 0.5 * this.rotI * this.om**2.0; }
-    get_total_energy() { return this.get_kinetic_energy() + this.get_rotational_energy(); }
-    get_energies() { return [ this.get_kinetic_energy(), this.get_rotational_energy() ]; }
+    measure_kinetic_energy() { return 0.5 * this.mass * this.v.norm2(); }
+    measure_rotational_energy() { return 0.5 * this.rotI * this.om**2.0; }
+    measure_total_energy() { return this.measure_kinetic_energy() + this.measure_rotational_energy(); }
+    get_energies() { return [ this.measure_kinetic_energy(), this.measure_rotational_energy() ]; }
     
     //momentum
     get_translational_momentum() { return this.v.scaled_copy( this.mass ) ; }
@@ -451,9 +451,9 @@ class MoleculeMonoatomic extends Molecule {
     
     get_rotI() { return null; }    
     //Report in kJ/mol rather than kg.m^2/s^2 
-    get_rotational_energy() { return 0.0; }
-    get_total_energy() { return this.get_kinetic_energy(); }
-    get_energies() { return [ this.get_kinetic_energy(), 0.0 ]; }
+    measure_rotational_energy() { return 0.0; }
+    measure_total_energy() { return this.measure_kinetic_energy(); }
+    get_energies() { return [ this.measure_kinetic_energy(), 0.0 ]; }
     
     //momentum
     get_angular_momentum( pRef ) {

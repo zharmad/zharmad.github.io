@@ -41,8 +41,10 @@ class Simulation {
         this.refreshAlpha = 0.4 ;
         this.bDrawMolecules = true;        
         
-        // Accounting features.
-        this.currentTemperature = undefined;
+        // Accounting features. The statistics natively uses a running average to keep track of the last 
+        // uses this.statsUpdateInterval as a marker for the length.
+        this.stats       = undefined;
+        this.setup_statistics_object();
         
         this.objTextFields = {}; //Object of HTML span references that can be filled later.
         
@@ -50,7 +52,10 @@ class Simulation {
         // Default to current composition for now.
         this.chartDoughnutGr = undefined;        
         this.chartBarGr = undefined;       
-        this.chartLineGr1 = undefined;
+        
+        this.chartLineGr1   = undefined;
+        this.displayLineGr1 = ['temperature'] ; // Default to display only simulation temperature.
+        
         this.chartLineGr2 = undefined;               
         
         // TODO: Hookup with the dynamic component registry and create a single trajectory data object for use in plotting and export.
@@ -82,18 +87,16 @@ class Simulation {
     }
     
     // Internal dimensions will be in picometers. So will convert.
-    setup_graphical_context(ctx, width, height, alpha) {
+    setup_graphical_context(ctx, alpha) {
         if ( undefined === ctx ) { throw "Cannot setup graphical context without an argument!"; }
-        if ( undefined === width ) { throw "Cannot setup graphical context without a width/height dimension!"; }
-        if ( undefined === height ) { throw "Cannot setup graphical context without a width/height dimension!"; }
         if ( undefined === alpha ) { alpha = 0.4; }
         this.graphicalContext = ctx ;
         this.refreshAlpha = alpha ;
-        this.set_world_boundaries( width, height );
     }
     
     // NB: this one function should never be called while the simulation is running.
     set_target_number_of_molecules( nMol ) { this.nMoleculesTarget = nMol; }
+    set_target_nMols_by_density( dens ) { this.nMoleculesTarget = Math.ceil( dens * this.measure_volume() ); }
     
     set_world_temperature( T ) { this.temperature = T; }
     get_world_temperature() { return this.temperature; }
@@ -116,6 +119,10 @@ class Simulation {
     get_world_time_delta() { return this.dt; }      
     set_statistics_update_interval( x ) { this.statsUpdateInterval = x; }
     set_system_zero_interval( x ) { this.systemZeroInterval = x; }
+    
+    get_world_boundaries() {
+        return [ this.xBounds, this.yBounds ];
+    }
     set_world_boundaries( xMax, yMax ) {
         this.xBounds[1] = xMax * this.lengthScale;
         this.yBounds[1] = yMax * this.lengthScale;
@@ -129,9 +136,9 @@ class Simulation {
         this.set_world_boundaries( globalVars.worldWidth, globalVars.worldHeight );
         this.set_world_temperature( globalVars.temperature );
         this.set_bool_heat_exchange( globalVars.bHeatExchange );
-        this.set_target_number_of_molecules( globalVars.numMolecules );
+        //this.set_target_number_of_molecules( globalVars.numMolecules );
+        this.set_target_nMols_by_density( globalVars.densMolecules * 1e-6 );
         this.set_statistics_update_interval( globalVars.statisticsUpdateInterval );
-        
     }
     
     set_molecule_library( ml ) {
@@ -243,9 +250,14 @@ class Simulation {
         this.molecules = [];
         this.moletypeNames = [];
         this.nMolecules = 0, this.nDegrees = 0;
-        
+                
         const obj = this.gasComp.get_components();
         this.initialise_moletype_accounting( this.gasComp.get_component_names() );
+        
+        // Initial safety check.
+        this.assert_maximum_safe_density();
+
+        // Place molecules 
         switch ( this.gasComp.type ) {
             case 'count':
                 obj.forEach( ([name,val]) => {
@@ -280,6 +292,7 @@ class Simulation {
         });        
 
         //Initial setup of data.
+        this.update_statistics();
         this.push_current_stats();
         
         //Synchronise and set up graph data.
@@ -321,6 +334,25 @@ class Simulation {
         }
         if ( null === this.graphicalContext ) { throw "The graphical context has not been given!";}
         return true;
+    }
+
+    assert_maximum_safe_density() {
+        // Inverse density measures the average amount of space available to each molecule.
+        const limitRatio = 0.5 ;
+        const volume = this.measure_volume() * 1e-6 ;
+        const targetVolumePerMol = volume / this.nMoleculesTarget;
+        let maxMolVolume = 0.0, molVolume = 0.0;
+        for (const name of Object.keys( this.gasComp.data ) ) {
+            molVolume = this.moleculeLibrary.data[name].size**2.0 * Math.PI;
+            maxMolVolume = Math.max( maxMolVolume, molVolume );
+        }
+        maxMolVolume *= 1e-6 ;
+        console.log( this.nMoleculesTarget, volume, targetVolumePerMol, maxMolVolume );
+        if ( targetVolumePerMol < maxMolVolume / limitRatio ) {
+            const nMoleculesNew = Math.floor( limitRatio * volume / maxMolVolume );
+            console.log( `Too dense! Reducing the target number of molecules from ${this.nMoleculesTarget} to ${nMoleculesNew}.` );
+            this.nMoleculesTarget = nMoleculesNew;
+        }
     }
 
     // This is responsible for wiping previous images.
@@ -403,8 +435,10 @@ class Simulation {
     
     resolve_molecule_changes( arrAdd, arrDel ) {
         //console.log(`DEBUG at timestep ${this.timestep}: Molecules reacted!`);
-        arrDel.forEach( m => { this.remove_molecule(m); });
-        arrAdd.forEach( m => { this.add_molecule(m); });
+        for ( const m of Object.values(arrDel) ) { this.remove_molecule(m); };
+        for ( const m of Object.values(arrAdd) ) { this.add_molecule(m); };
+        //arrDel.forEach( m => { this.remove_molecule(m); });
+        //arrAdd.forEach( m => { this.add_molecule(m); });
     }
     
     // This O(n^2) step takes the most time. 32 of 80 seconds on last check for ~2000 molecule system.
@@ -520,10 +554,11 @@ class Simulation {
         }
         
         // Resolve any collision with the walls.
+        let totalMomentumTransfer = 0.0;
         for (const mol of this.molecules) {
             //Shift molecules            
-            this.process_wallBounce(mol);
-        }       
+            totalMomentumTransfer += this.process_wallBounce(mol);            
+        }
         
         //Zero all angular momentum to reduce ice cude phenomenon. This now breaks strict energy conservation of the system.
         if ( this.timestep % this.systemZeroInterval == 1 ) {
@@ -544,10 +579,13 @@ class Simulation {
         if( this.bDrawMolecules ) { this.draw_all_new(); }        
         
         // inform fast updaters
+        this.update_statistics();        
+        this.stats['pressure'].unshift( this.calculate_instant_pressure( totalMomentumTransfer ) );
+
         this.push_current_stats();
         
         // inform slow updaters
-        if ( this.timestep % this.statsUpdateInterval == 1 ) {
+        if ( this.timestep % this.statsUpdateInterval == 0 ) {
             this.push_data_frame();
             this.update_all_graphs();
         }
@@ -567,33 +605,32 @@ class Simulation {
     // const w = (rotI != null ) ? sep1P.cross(vecN)**2.0/rotI : 0.0;
     // const f = 1.0 / ( 1.0/mass + w ) ;
     // const impulse = f * vel1PInit.dot(vecN) * (1 + elasticity) ;
-    process_wallBounce(mol) {
+    process_wallBounce(mol) {        
         const xBounds = this.xBounds, yBounds = this.yBounds;
         const s = mol.size, p = mol.p, v = mol.v ;
-        let bCollide = false, bMovingWall = false;
+        let bCollideX = false, bCollideY = false, bMovingWall = false;        
+        const vInit = Vector2D.duplicate( v );
+        
         if ( p.x - s < xBounds[0] ) {
             v.x = -v.x;
             p.x += 2.0*( s + xBounds[0] - p.x );
-            bCollide = true;
-        }
-        
-        // This is the boundary that can move. Add additional component from an infinitely heavier wall collision.
-        if ( p.x + s > xBounds[1]) {
+            bCollideX = true;
+        } else if ( p.x + s > xBounds[1]) {
+            // This is the boundary that can move. Add additional component from an infinitely heavier wall collision.            
             v.x = -v.x ;
             p.x += 2.0*( xBounds[1] -p.x - s );
-            bCollide = true;
+            bCollideX = true;
             bMovingWall = true;
         }
 
         if ( p.y - s < yBounds.x) {
             v.y = -v.y;
             p.y += 2.0*( s + yBounds.x - p.y );
-            bCollide = true;
-        }        
-        if ( p.y + s > yBounds.y) {
+            bCollideY = true;
+        } else if ( p.y + s > yBounds.y) {
             v.y = -v.y;
             p.y += 2.0*( yBounds.y - p.y - s );
-            bCollide = true;
+            bCollideY = true;
         }
         
         /*
@@ -603,56 +640,85 @@ class Simulation {
             - 500 molecules in 303nm^2 box gives 300K.
         This confirms that the constant will have a small dependence on density, i.e. collision rate between molecules.
         */
-        if ( this.bHeatExchange && bCollide ) {
+        if ( !bCollideY || !bCollideY ) { return 0.0 }
+        
+        if ( this.bHeatExchange ) {
             // mol.resample_speed( this.temperature * 1.26 );
             // mol.resample_omega( this.temperature * 1.26 );
             mol.resample_speed( this.temperature * 1.38 );
             //mol.resample_speed( this.temperature );
-            mol.resample_omega( this.temperature );            
+            mol.resample_omega( this.temperature );
         }
         
         if ( bMovingWall ) { mol.v.x += 2.0 * this.xWallVel } 
+
+        if ( bCollideX ) {
+            return mol.mass * Math.abs( mol.v.x - vInit.x );
+        } else if ( bCollideY ) {
+            return mol.mass * Math.abs( mol.v.y - vInit.y );
+        } else {
+            return mol.mass * mol.v.dist(vInit);
+        }
     }
     
-    /* General analysis functions*/
-    get_volume() {
-        return (this.xBounds.y-this.xBounds.x)*(this.yBounds.y-this.yBounds.x);
+    /* Cheapouts when the value has already been done */
+    get_current_stat( key ) {
+       return this.stats[key][0];
     }
-    get_total_energy() {
+    get_average_stat( key ) {
+        return array_average( this.stats[key] );
+    }    
+    
+    /* General analysis functions*/
+    measure_volume() {
+        return ( this.xBounds[1] - this.xBounds[0] ) * (this.yBounds[1] - this.yBounds[0] );
+    }    
+    measure_temperature() {
+        // Note: the minus 3 comes from the constraints on setting the center of mass and rotation to zero.
+        const totE = this.measure_total_energy();
+        return totE / ( 0.5 * (this.nDegrees - 3) * 8.314 * this.timeFactor**2.0 * 1000 ) ;
+    }
+    
+    measure_perimeter() {
+        // In pm
+        return 2.0 * ( this.xBounds[1] - this.xBounds[0] + this.yBounds[1] - this.yBounds[0] );
+    }    
+    calculate_instant_pressure( totMomentumTransfer ) {
+        // In amu, pm, fs. Need to convert.
+        // Report as amu, pm, ps.
+        return totMomentumTransfer / this.measure_perimeter() / this.dt / this.timeFactor**2 ;
+    }
+    
+    /* */
+    measure_total_energy() {
         let ETot = 0.0; 
         for (const mol of this.molecules) {
-            ETot += mol.get_total_energy();
+            ETot += mol.measure_total_energy();
         }
         return ETot;        
     }
-    get_total_kinetic_energy() {
+    measure_total_kinetic_energy() {
         let KE = 0.0;
         for (const mol of this.molecules) {
-            KE += mol.get_kinetic_energy();
+            KE += mol.measure_kinetic_energy();
         }
         return KE;
     }
-    get_total_rotational_energy() {
+    measure_total_rotational_energy() {
         let RE = 0.0;
         for (const mol of this.molecules) {
-            RE += mol.get_rotational_energy();
+            RE += mol.measure_rotational_energy();
         }
         return RE;
     }        
-    get_mean_velocity() {
+    measure_mean_velocity() {
         let v = 0.0;
         for (const mol of this.molecules) {
             v += mol.v.norm();
         }
         return v/this.nMolecules;
-    }       
-    get_temperature() {
-        // Note: the minus 3 comes from the constraints on setting the center of mass and rotation to zero.
-        const totE = this.get_total_energy();
-        return totE / ( 0.5 * (this.nDegrees - 3) * 8.314 * this.timeFactor**2.0 * 1000 ) ;
-        //const totE = this.get_total_kinetic_energy();
-        //return totE / ( this.nMolecules * 8.314 * this.timeFactor**2.0 * 1000 ) ;
     }
+
     get_centre_of_mass() {
         let pCent = new Vector2D(0,0), mTot = 0.0;
         for (const mol of this.molecules) {
@@ -688,7 +754,7 @@ class Simulation {
             PTot.sincr( mol.mass, mol.v );
             ITot += mol.mass * mol.p.subtract( pCent ).norm2();            
             LTot += mol.get_angular_momentum( pCent );
-            ETotOld += mol.get_total_energy();
+            ETotOld += mol.measure_total_energy();
         }
         const sysOm = LTot / ITot; const sysV = PTot.scaled_copy( 1.0 / MTot );
         let ETotNew = 0.0;
@@ -697,7 +763,7 @@ class Simulation {
             const vRect = Vector2D.scalar_cross( -sysOm, mol.p.subtract( pCent ) );
             vRect.decr( sysV );
             mol.v.incr( vRect );
-            ETotNew += mol.get_total_energy();
+            ETotNew += mol.measure_total_energy();
         }
         // Energy redistribution
         const ratio = Math.sqrt( ETotOld/ETotNew );
@@ -709,14 +775,14 @@ class Simulation {
         //debugging
         // const PFinal = this.get_linear_momentum();
         // const LFinal = this.get_angular_momentum();
-        // const ETotFinal = this.get_total_energy();        
+        // const ETotFinal = this.measure_total_energy();        
         // console.log( "Old momentum and energies:", PTot.x, PTot.y, LTot, ETotOld);
         // console.log( "New momentum and energies:", PFinal.x, PFinal.y, LFinal, ETotFinal );
     }
     
     /* Reaction handling functions */
     test_decomposition( mol ) {
-        const totKE = mol.get_kinetic_energy() + mol.get_rotational_energy();        
+        const totKE = mol.measure_kinetic_energy() + mol.measure_rotational_energy();        
         console.log( totKE );
         if ( totKE > 12.6 ) {
             // Create decomposed molecules and delete this one.
@@ -733,7 +799,11 @@ class Simulation {
     reset_data_frame() {
         delete this.dataFrame;
         this.dataFrame = {};
-        this.create_data_frame_entry( 'temperature', 'T' );
+        this.create_data_frame_entry( 'temperature', 'temperature (K)', 'rgb(0,0,0)' );
+        this.create_data_frame_entry( 'volume', 'volume (nm³)', 'rgb(255,128,0)' );
+        this.create_data_frame_entry( 'pressure', 'pressure (amu ps⁻²)', 'rgb(0,255,128)' );
+        this.create_data_frame_entry( 'density', 'density (nm⁻³)', 'rgb(128,0,255)' );
+        this.create_data_frame_entry( 'numMolecules', '# of molecules', 'rgb(128,128,128)' );
     }
     
     create_data_frame_entry( key, label, BGColour ) {
@@ -743,27 +813,65 @@ class Simulation {
     }
     
     link_current_stats_text_fields( args ) {
-        this.objTextFields['temperature'] = args['temperature'];
-        this.objTextFields['volume'] = args['volume'];
-        this.objTextFields['numMolecules'] = args['numMolecules'];
+        for (const [k, v] of Object.entries( args ) ) {
+            this.objTextFields[k] = v;
+        }
     }
+
+    // Uses this.statsUpdateInterval as the length of the average.
+    setup_statistics_object() {
+        this.stats = {};
+        this.stats['timeElapsed'] = [];
+        this.stats['numMolecules'] = [];        
+        this.stats['volume'] = [];
+        this.stats['density'] = [];        
+        this.stats['temperature'] = [];
+        this.stats['pressure'] = [];
+    }
+    
+    // Most recent addition is always at the front of the array
+    update_statistics() {
+        const s = this.stats;
+        s.timeElapsed.unshift( this.timeElapsed );
+        s.numMolecules.unshift( this.nMolecules );
+        s.volume.unshift( this.measure_volume() * 1e-6 );
+        s.density.unshift( this.nMolecules / s.volume[0] );
+        s.temperature.unshift( this.measure_temperature() );
+        //s.pressure.unshift( this.measure_pressure() );
         
+        //Pop last entries to maintain length.
+        if ( this.statsUpdateInterval < s.timeElapsed.length ) {
+            s.timeElapsed.pop();
+            s.numMolecules.pop();
+            s.volume.pop();
+            s.density.pop();
+            s.temperature.pop();
+            s.pressure.pop();
+        }
+    }
+    
+    // Always get the latest values only from the arrays.
     push_current_stats() {
-        this.currentTemperature = this.get_temperature();
-        this.objTextFields['temperature'].innerHTML = this.currentTemperature.toFixed(0);
-        this.objTextFields['volume'].innerHTML = (this.get_volume()*1e-6).toFixed(0) ;
-        this.objTextFields['numMolecules'].innerHTML = this.nMolecules ;
-        // Inefficient, but doesn't worry about undefined items.
-        //for (const [k, obj] of Object.entries( this.objTextFields ) ) {
-            //console.log(`${k} -> ${o}`)
-        //    switch( k )
-        //}
+        for ( const [ k, v ] of Object.entries( this.stats ) ) {
+            if ( k in this.objTextFields ) {
+                this.objTextFields[k].innerHTML = ( undefined != v[0] ) ? v[0].toFixed(0) : undefined;
+            }
+        };
     }
     
     // Where possible, assume that push current stats has already been called as it's a slower set of data.
     push_data_frame() {
+        
+        const s = this.stats;
         const t = this.timeElapsed;
-        this.dataFrame['temperature'].data.push( [ t, this.currentTemperature ] );
+        for (const [k,v] of Object.entries(s) ) {
+            if ( k in this.dataFrame ) {
+                this.dataFrame[k].data.push( [ t, array_average(v) ] );
+            }
+        }
+        //this.dataFrame['temperature'].data.push( [ t, this.get_average_() ] );
+        
+        // Molecule inventory
         const n = this.moletypeNames.length;       
         let name = undefined, count = undefined;
         for ( let i = 0; i < n; i++ ) {
@@ -771,7 +879,8 @@ class Simulation {
             count = this.moletypeCounts[i];
             this.dataFrame[name].data.push( [ t, count ] );
         }
-        this.dataFrame['temperature'].data.push( [ t, this.get_temperature() ] );
+        
+
     }
         
     /* Analysis functions for graphing in Chart.JS */
@@ -813,7 +922,11 @@ class Simulation {
   
     //Temperature
     sync_line_graph_1() {
-        this.chartLineGr1.data.datasets = [ this.dataFrame['temperature'] ]
+        const datasetNew = [];
+        this.displayLineGr1.forEach( k => {
+            datasetNew.push( this.dataFrame[k] );
+        });
+        this.chartLineGr1.data.datasets = datasetNew ;
     }
     
     //Copunts of individual molecule types
@@ -844,8 +957,8 @@ class Simulation {
         var meanVal = 0.0;
         var temp = undefined ;     
         for (const mol of this.molecules) {
-            temp = mol.get_total_energy();
-            //temp = mol.get_kinetic_energy();
+            temp = mol.measure_total_energy();
+            //temp = mol.measure_kinetic_energy();
             //temp = mol.v.norm();
             arrVal.push( temp );
             //maxVal = Math.max( maxVal, temp );
@@ -877,9 +990,6 @@ class Simulation {
         this.update_doughnut_graph();
         this.update_line_graphs();        
         if ( this.chartBarGr.bUpdate ) { this.inventory_bar_graph(); }
-        //this.update_line_graph( 0, this.timeElapsed, this.get_temperature() );
-        //this.update_line_graph( 0, this.timeElapsed, this.get_total_kinetic_energy() );
-        //this.update_line_graph( 1, this.timeElapsed, this.get_total_rotational_energy() );
     }
     
     /*
@@ -1153,7 +1263,7 @@ class PhotonEmitterModule {
             // NB: single atoms never interact in our model.
             //console.log( mol.name, mol.v.y, mol.om );
             mol.v.y += this.calc_photon_momentum( LPhoton[j] ) / mol.mass;
-            const RE    = mol.get_rotational_energy();
+            const RE    = mol.measure_rotational_energy();
             const RENew = RE + this.calc_photon_energy( LPhoton[j] );
             
             mol.om = ( RE > 0.0 ) ? mol.om * Math.sqrt(RENew/RE) : Math.sqrt( 2.0 * RENew / mol.rotI );
