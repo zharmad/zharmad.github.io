@@ -18,17 +18,15 @@
 var globalVars = {};
 
 // World temperature. Used to determine initial velocities and heat-exchange after collisons.
-globalVars.temperature    =  300;
-globalVars.temperatureMin =   10;
-globalVars.temperatureMax = 1000;
+globalVars.temperature       =  300;
+globalVars.temperatureParams = { min: 10, max: 1000, step: 10 }
 
 globalVars.bHeatExchange = true;
 
 // Determines the scaling between the simulation and the default pixel size.
 // Defaults to 1 pixel = 10 pm = 0.1 Angs.
-globalVars.lengthScale    =  10;
-globalVars.lengthScaleMin =  10;
-globalVars.lengthScaleMax =  50;
+globalVars.lengthScale     = 10;
+globalVars.lengthScaleParams = { min: 10, max: 50, step: 1 }
 
 globalVars.zoomScale      =  10; //This is updated on load according to window size.
 
@@ -37,18 +35,15 @@ globalVars.refreshAlpha = 0.4;
 
 // Converts the default units to pm per fs.
 globalVars.timeFactor = 1e-3;
-globalVars.timeDelta    =  10.0;
-globalVars.timeDeltaMin =  10.0;
-globalVars.timeDeltaMax = 200.0;
+globalVars.timeDelta  =  10.0;
+globalVars.timeDeltaParams = { min: 10.0, max: 200.0, step: 5.0 }
 
 // Simulation specific parameters.
 // globalVars.numMolecules    =  200;
 // globalVars.numMoleculesMin =  100;
 // globalVars.numMoleculesMax = 1000;
 globalVars.densMolecules     =  0.75;
-globalVars.densMoleculesMin  =  0.05;
-globalVars.densMoleculesMax  =  3.00;
-globalVars.densMoleculesStep =  0.05;
+globalVars.densMoleculesParams = { min: 0.05, max: 3.00, step: 0.05 }
 
 // molecules per nm^2
 // Notes: an oxygen molecule has an area of ~0.1 nm^2
@@ -244,7 +239,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         reactantAngleRanges: [ 360, 360 ],
         productAngles:       [   0,   0 ],
         productAngleRanges:  [ 360, 240 ],
-        EActivation: 16.4, DeltaH: 13.7,
+        EActivation: 14.0, DeltaH: 13.7,
     },
     {
         reactantNames: [ "I₂", "H•" ], productNames: [ "I•", "HI" ],
@@ -252,7 +247,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         reactantAngleRanges: [ 360, 360 ],
         productAngles:       [   0, 180 ],
         productAngleRanges:  [ 360, 240 ],
-        EActivation:  1.8, DeltaH: -14.7,
+        EActivation:  0.2, DeltaH: -14.7,
     },
     {
         //TODO: Add symmetry operations!

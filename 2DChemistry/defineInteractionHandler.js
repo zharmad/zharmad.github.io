@@ -723,6 +723,19 @@ class reaction {
         return arrMolNew;
     }
 
+    get_reaction_name() {
+        const nR = this.reactantNames.length;
+        const nP = this.productNames.length;
+        let ret = '';
+        for (let i = 0; i < nR - 1; i++ ) { ret += this.reactantNames[i]; ret += " + "; }
+        ret += this.reactantNames[nR-1];
+        ret += " → ";
+        //ret += " ⇌ ";
+        for (let i = 0; i < nP - 1; i++ ) { ret += this.productNames[i]; ret += " + "; }
+        ret += this.productNames[nP-1];
+        
+        return ret;
+    }
 }
 
 /* = = Subclasses for Decomposition reactions = = */

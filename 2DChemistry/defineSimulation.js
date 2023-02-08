@@ -9,7 +9,7 @@ class Simulation {
         this.moletypeColours = [];
         this.nDegrees = 0;
         this.nMoleculesTarget = 0;
-        this.nTrialsPosition = 1000; //Attempt this many trials when placing molecules before erroring out.
+        this.nTrialsPosition = 10; //Attempt this many trials when placing molecules before resorting to other means.
         
         //Objects to be initialised.
         this.moleculeLibrary = undefined;
@@ -174,7 +174,9 @@ class Simulation {
             }
             if ( !(bCollide) ) { return pTest; }
         }
-        throw `ERROR: Failed to find open space for a molecule with size ${size}. Simulation is probably too densely packed!`;
+        // Let the simulation sort it out later.
+        return pTest;
+        //throw `ERROR: Failed to find open space for a molecule with size ${size}. Simulation is probably too densely packed!`;
     }
     // mass is defined in amu. velocity as pm per fs.
     // KE is thus measured as 1 kJ/mol = 1000 kg m^2 / ( s^2 mol) = 1 amu pm^2 / fs^2.
@@ -491,11 +493,11 @@ class Simulation {
         
         /* Account for additions and subtractions here. */
         if ( arrDel.length > 0 ) {
-            this.resolve_molecule_changes( arrAdd, arrDel );
-            
+            this.resolve_molecule_changes( arrAdd, arrDel );            
             // Draw new molecules separately in an asynchronous implementation.
-            for (const mol of arrAdd) { mol.draw( this.graphicalContext ); }
-            
+            if ( this.bDrawMolecules ) {
+                for (const mol of arrAdd) { mol.draw( this.graphicalContext ); }
+            }            
             //stop_simulation();
         }
     }
@@ -529,7 +531,7 @@ class Simulation {
             mol.update_position( dt );
         }
         
-        // Asynchronous version of draw. Breaks fidelity but speed up simulation work.        
+        // Asynchronous version of draw. Breaks fidelity a little but speeds up simulation work.
         let drawPromise = new Promise( function( resolve, reject ) {
             sim.draw_all_new();
             resolve();

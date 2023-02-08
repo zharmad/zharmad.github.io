@@ -25,13 +25,17 @@ globalVars.worldHeight = canvasSim.height ;
 
 // Setup HTML5 GUI Sections. Use global variables to initialise all values rather than the HTML presets.
 function update_slider_values( slider, args ) {
-    slider.min = args.min; slider.max = args.max; slider.value = args.value; slider.step = args.step;
+    slider.value = args.value; 
+    const p = args.params;
+    if ( undefined != p.min  ) { slider.min  = p.min; }
+    if ( undefined != p.max  ) { slider.max  = p.max; }        
+    if ( undefined != p.step ) { slider.step = p.step; }
 }
 
 // Non-live-updating buttons.
 const sliderLengthScale    = document.getElementById("sliderLengthScale");
 const textFieldLengthScale = document.getElementById("textFieldLengthScale");
-update_slider_values( sliderLengthScale, { value: globalVars.lengthScale, min: globalVars.lengthScaleMin, max: globalVars.lengthScaleMax });
+update_slider_values( sliderLengthScale, { value: globalVars.lengthScale, params: globalVars.lengthScaleParams });
 textFieldLengthScale.innerHTML = sliderLengthScale.value;
 sliderLengthScale.oninput = function() {
     globalVars.lengthScale       = this.value;
@@ -49,12 +53,7 @@ sliderLengthScale.oninput = function() {
 const sliderDensMolecules    = document.getElementById("sliderDensMolecules");
 const textFieldDensMolecules = document.getElementById("textFieldDensMolecules");
 const textFieldNumMolecules  = document.getElementById("textFieldNumMolecules");
-update_slider_values( sliderDensMolecules, {
-    value: globalVars.densMolecules,
-    min: globalVars.densMoleculesMin,
-    max: globalVars.densMoleculesMax,
-    step: globalVars.densMoleculesStep
-});
+update_slider_values( sliderDensMolecules, { value: globalVars.densMolecules, params: globalVars.densMoleculesParams });
 textFieldDensMolecules.innerHTML = textFieldDensMolecules.value;
 textFieldNumMolecules.innerHTML = 'unknown' ;
 sliderDensMolecules.oninput = function() {
@@ -74,7 +73,7 @@ togglePresetsOverwriteParams.oninput = function () {
 // Live-updating buttons.
 const sliderWorldTemperature = document.getElementById("sliderWorldTemperature");
 const textFieldWorldTemperature = document.getElementById("textFieldWorldTemperature");
-update_slider_values( sliderWorldTemperature, { value: globalVars.temperature, min: globalVars.temperatureMin, max: globalVars.temperatureMax });
+update_slider_values( sliderWorldTemperature, { value: globalVars.temperature, params: globalVars.temperatureParams });
 textFieldWorldTemperature.innerHTML = sliderWorldTemperature.value;
 sliderWorldTemperature.oninput = function() {
     textFieldWorldTemperature.innerHTML = this.value;
@@ -92,7 +91,7 @@ toggleDoHeatExchange.oninput = function () {
 
 var sliderTimeDelta = document.getElementById("sliderTimeDelta");
 var textFieldTimeDelta = document.getElementById("textFieldTimeDelta");
-update_slider_values( sliderTimeDelta, { value: globalVars.timeDelta, min: globalVars.timeDeltaMin, max: globalVars.timeDeltaMax });
+update_slider_values( sliderTimeDelta, { value: globalVars.timeDelta, params: globalVars.timeDeltaParams });
 textFieldTimeDelta.innerHTML = sliderTimeDelta.value;
 sliderTimeDelta.oninput = function() {
     textFieldTimeDelta.innerHTML = this.value;
@@ -239,7 +238,33 @@ const chartBarGr  = new Chart( canvasBarGr, { type: 'bar', data: {} } );
 chartBarGr.options.animation.duration = 600;
 chartBarGr.bUpdate = false;
 //chartBarGr.options.scales.x.ticks.callback = (i) => (i.toExponential());
-// Main software section.
+
+//Reaction Diagram chart.
+const buttonReactionDragramContents = document.getElementById("buttonReactionDragramContents");
+const divReactionDragramOptions = document.getElementById("divReactionDragramOptions");
+const canvasReactionDiagram = document.getElementById("canvasReactionDiagramGraph");
+const chartReactionDiagram = new Chart( canvasReactionDiagram, {
+    type: 'line',
+    data: {
+        labels: [ "", "Reactants", "Barrier", "Products", "" ],
+        datasets: [{
+            tension: 0.4,
+            fillColor: 'white',
+            fill: false,
+            borderColor: 'black',
+            data: [ 0, 0, 0, 0, 0 ],
+        }], 
+    }
+});
+chartReactionDiagram.options.elements.point.pointStyle = false;
+chartReactionDiagram.options.elements.point.radius = 20;
+chartReactionDiagram.options.plugins.legend.display = false;
+chartReactionDiagram.options.animation.duration = 600;
+chartReactionDiagram.options.aspectRatio = 2;
+chartReactionDiagram.options.scales.y.title.display=true;
+chartReactionDiagram.options.scales.y.title.text = "Energy (kJ mol⁻¹)";
+
+// = =  Main software section. = = 
 let bRun = false;
 
 /* Initial setup of simulations for plug and play. */
@@ -305,7 +330,7 @@ function activate_step_button() {
         }        
         sim.step().catch( err=> {
             throw err;
-        });        
+        });
         //requestAnimationFrame();
     }
 }
@@ -361,14 +386,14 @@ function choose_line_graph_1_contents(arr) {
 
 // Setup system to control side bars.
 class DynamicSideTabs {
-    constructor( elementMain, elementParent, elementDivider ) {
+    constructor( elementMain, elemContainer, elementDivider ) {
         const widthAll = window.innerWidth;
         
         this.set_main_window( elementMain );
-        this.set_container_element( elementParent );
+        this.set_container_element( elemContainer );
         this.set_divider_element( elementDivider );
         
-        this.widthMax = Math.floor( 0.5 * widthAll) ;
+        this.widthMax = Math.floor( 0.75 * widthAll) ;
         this.widthParentOpen = this.elemContainer.offsetWidth ; // rather than clientWidth
         this.widthParentClosed = 10;
         this.widthOpen = this.widthParentOpen - this.widthParentClosed;
@@ -412,10 +437,8 @@ class DynamicSideTabs {
 
         // Adjust the dimension of element
         const temp = this.w + dx;
-        //elementSidebarParent.style.width = `${temp}px`;
-        this.widthParentOpen = Math.min(temp, this.widthMax);    
-        this.widthOpen = this.widthParentOpen - this.widthParentClosed;
-        //ele.style.height = `${h + dy}px`;        
+        this.set_widths( temp );
+
     }
     
     update() {
@@ -423,7 +446,7 @@ class DynamicSideTabs {
         const wC = `${this.widthParentClosed}px`;
         const w1 = `${this.widthOpen}px`;
         const w0 = this.sizeZero;
-        if ( this.bOpen ) {
+        if ( this.bOpen ) {            
             this.elemMain.style.marginRight = wO; this.elemContainer.style.width = wO;
             Object.entries(this.elemTabs).forEach(([key, tab]) => {
                 tab.style.width = ( key == this.tabID ) ? w1 : w0;
@@ -436,6 +459,13 @@ class DynamicSideTabs {
         }
         
         this.refresh_tab_graph_updates();
+    }
+    
+    set_widths( w ) {
+        w = ( w > this.widthMax ) ? this.widthMax : ( ( w < this.widthParentClosed ) ? this.widthParentClosed : w );
+        this.widthParentOpen = w;
+        this.widthOpen = this.widthParentOpen - this.widthParentClosed;        
+        this.bOpen = ( this.widthOpen > 5 );
     }
     
     refresh_tab_graph_updates() {
@@ -459,7 +489,18 @@ class DynamicSideTabs {
     
     toggle() {
         this.bOpen = !this.bOpen;
+        if ( this.bOpen && this.widthOpen < 5 ) {
+            this.set_widths( 0.6 * this.widthMax );
+        }
         this.update();
+    }
+    
+    open() {
+        if ( !this.bOpen ) {
+            this.toggle();
+        } else {
+            this.update();
+        }
     }
 }
 
@@ -508,11 +549,10 @@ const touchEndHandlerSidebarResize = function () {
 
 function toggle_sidebars( x ) {
     if ( controlsSidebar.tabID === x || undefined === x ) {
-        controlsSidebar.toggle();        
+        controlsSidebar.toggle();
     } else {        
         controlsSidebar.tabID = x;
-        controlsSidebar.bOpen = true;
-        controlsSidebar.update();            
+        controlsSidebar.open();
     }
 }
 
@@ -562,7 +602,8 @@ function generate_preset_simulation( strType ) {
 
     // Additional setup - ranging from gui modifiation to module loading.
     sync_composition_gui( p );
-        
+    sync_reaction_gui( gr );
+    
     //
     if ( undefined != p.componentHidePlot ) {
         chartLineGr2.data.datasets.forEach((dataSet, i) => {
@@ -660,10 +701,55 @@ function update_composition_GUI_from_gasComp() {
     }
 }
 
+// Create an interface to let users see what reactions have been encoded.
+// Eliminate duplicate reactions that are normally used to cover different geometries.
+
+function sync_reaction_gui( obj ) {
+    const arrLoaded = [];
+    let divContent = "";
+    var ER, EA, EP = 0.0;
+    let bFirst = true;
+    for ( const r of obj.reactions) {
+        const DeltaH      = r.DeltaH;
+        const EActivation = r.EActivation;
+        const name = r.get_reaction_name();
+        
+        if ( arrLoaded.indexOf( name ) == -1 ) {
+            if ( DeltaH < 0 ) {
+                ER = -DeltaH ; EA = EActivation - DeltaH ; EP = 0.0; 
+            } else {
+                ER = 0.0; EA = EActivation ; EP = DeltaH; 
+            }
+            // <a onclick="update_reaction_diagram()">None</a>            
+            divContent += `<a onclick="update_reaction_diagram('${name}',${ER},${EA},${EP})">${name}</a>\n`;            
+            arrLoaded.push(name);
+        }
+        
+        if ( bFirst ) {
+            bFirst = false;
+            buttonReactionDragramContents.innerHTML = name;
+            update_reaction_diagram( name, ER, EA, EP );
+        }
+    }
+    if ( !bFirst ) {
+        divReactionDragramOptions.innerHTML = divContent;
+    } else {
+        divReactionDragramOptions.innerHTML = 'none';
+        update_reaction_diagram( 'none', 0, 0, 0 );
+    }
+        
+}
+
+function update_reaction_diagram( str, ER, EA, EP ) {
+    buttonReactionDragramContents.innerHTML = str;
+    chartReactionDiagram.data.datasets[0].data = [ ER, ER, EA, EP, EP ];
+    chartReactionDiagram.update();
+}
+
 const controlsSidebar = new DynamicSideTabs(
     document.getElementById("mainWindow"),
-    document.getElementById('sidebarParent'),
-    document.getElementById('sidebarDivider'),
+    document.getElementById("sidebarContainer"),
+    document.getElementById("sidebarDivider"),
 );
 const elementSidebarHandle = document.getElementById('sidebarHandleDiv') ; 
 controlsSidebar.set_handle_element( elementSidebarHandle );
@@ -678,8 +764,12 @@ controlsSidebar.add_tab( 'analysisBar',  document.getElementById("sidebarAnalysi
 
 // Initialise Sidebar settings on first load.
 controlsSidebar.tabID = globalVars.initialOpenTab;
-controlsSidebar.bOpen = true;
-controlsSidebar.update();
+if ( controlsSidebar.widthOpen > 10 ) {
+    controlsSidebar.bOpen = true;
+    controlsSidebar.update();
+} else {
+    controlsSidebar.bOpen = false;
+}
 
 /* Webassembly import section */
 let collision_check_wasm = null;

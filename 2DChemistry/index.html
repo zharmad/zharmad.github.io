@@ -24,7 +24,7 @@
     </div>
 
 
-    <div id="sidebarParent">
+    <div id="sidebarContainer">
         <!-- Sidebar Handle to act as a visual border w.r.t. the main window, and manage dynamic resizing -->    
         <div id="sidebarDivider" class="sidebarDivider"></div>
         
@@ -190,34 +190,6 @@
             <label class="switchToggle"><input type="checkbox" id="togglePlotComposition" checked oninput="toggle_plot_composition( this.checked )"><span class="sliderToggle round"></span></label>
             Show Composition Plot            
             <canvas id="canvasLineGraph2" height="250" class="canvasGraph"></canvas>
-            <!--
-            <p>
-            <span id="spanPlotComponent0"> ||               
-                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent0"><span class="sliderToggle round"></span></label>
-                <span id="textFieldPlotComponent0">Comp0</span>
-            </span>
-            <span id="spanPlotComponent1"> ||
-                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent1"><span class="sliderToggle round"></span></label>
-                <span id="textFieldPlotComponent1">Comp1</span>
-            </span>
-            <span id="spanPlotComponent2"> ||
-                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent2"><span class="sliderToggle round"></span></label>
-                <span id="textFieldPlotComponent2">Comp2</span>
-            </span>
-            <span id="spanPlotComponent3"> ||
-                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent3"><span class="sliderToggle round"></span></label>
-                <span id="textFieldPlotComponent3">Comp3</span>
-            </span>
-            <span id="spanPlotComponent4"> ||
-                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent4"><span class="sliderToggle round"></span></label>
-                <span id="textFieldPlotComponent4">Comp4</span>
-            </span>
-            <span id="spanPlotComponent5"> ||
-                <label class="switchToggle"><input type="checkbox" id="togglePlotComponent5"><span class="sliderToggle round"></span></label>
-                <span id="textFieldPlotComponent5">Comp5</span>
-            </span>
-            </p>
-            -->
         </div>
 
         <!-- Sidebar for bar-based analysis -->
@@ -230,7 +202,22 @@
             <hr width="50%" align="center" color="grey" size="2">
             
             <canvas id="canvasBarGraph" height="200" class="canvasGraph"></canvas>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            
+            Show reaction diagram:
+            <div class="dropdown">
+                <button id="buttonReactionDragramContents" class="buttonDropDown">None</button>
+                <div id="divReactionDragramOptions" class="dropdown-content">
+                    <a onclick="update_reaction_diagram()">None</a>
+                </div>
+            </div>            
+            
+            <canvas id="canvasReactionDiagramGraph" height="200" class="canvasGraph"></canvas>
+            
         </div>
+
+
 
         <!-- Floating Div for dragging the side bars. -->
         <div id="sidebarHandleDiv" class="sidebarHandleDiv">
