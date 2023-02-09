@@ -325,14 +325,14 @@ class Molecule {
     
     // Draw each atom according to its offset and rotation. Most expensive part of the whole operation.
     // Suspect the arc and fill are the most expensive in total.
-    draw(ctxLoc) {
-        switch ( globalVars.moleculeColourScheme ) {
+    draw( ctxLoc, style ) {
+        switch ( style ) {
             case 'atom':
                 for (let i = 0; i < this.nAtoms; i++) {
                     const off = Vector2D.rotate( this.atomOffsets[i], this.th );
-                    const xPos = (this.p.vec[0] + off.vec[0])/globalVars.lengthScale ;
-                    const yPos = (this.p.vec[1] + off.vec[1])/globalVars.lengthScale ;
-                    const radius = this.atomRadii[i]/globalVars.lengthScale;                    
+                    const xPos = (this.p.vec[0] + off.vec[0])/globalVars.distScale ;
+                    const yPos = (this.p.vec[1] + off.vec[1])/globalVars.distScale ;
+                    const radius = this.atomRadii[i]/globalVars.distScale;                    
                     ctxLoc.beginPath();
                     ctxLoc.fillStyle = this.atomColours[i];
                     ctxLoc.arc( xPos, yPos, radius, 0, 2 * Math.PI );
@@ -350,9 +350,9 @@ class Molecule {
                 ctxLoc.strokeStyle = '#221100';
                 for (let i = 0; i < this.nAtoms; i++) {
                     const off = Vector2D.rotate( this.atomOffsets[i], this.th );                    
-                    const xPos = (this.p.vec[0] + off.vec[0])/globalVars.lengthScale ;
-                    const yPos = (this.p.vec[1] + off.vec[1])/globalVars.lengthScale ;
-                    const radius = this.atomRadii[i]/globalVars.lengthScale;
+                    const xPos = (this.p.vec[0] + off.vec[0])/globalVars.distScale ;
+                    const yPos = (this.p.vec[1] + off.vec[1])/globalVars.distScale ;
+                    const radius = this.atomRadii[i]/globalVars.distScale;
                     ctxLoc.moveTo( xPos + radius, yPos );
                     ctxLoc.arc( xPos, yPos, radius, 0, 2 * Math.PI );
                 }
@@ -360,7 +360,7 @@ class Molecule {
                 ctxLoc.fill();
                 break;
             default:
-                throw `Unknown colour scheme in global variables: ${globalVars.moleculeColourScheme} !`;
+                throw `Unknown drawing scheme in given: ${style}!`;
         }
     }
 

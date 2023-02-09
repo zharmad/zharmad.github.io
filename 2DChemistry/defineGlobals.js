@@ -17,6 +17,11 @@
 
 var globalVars = {};
 
+// Visual trails from older frames.
+// Determines the length of shadows as the screen refreshes each frame.
+globalVars.refreshAlpha = 0.4;
+globalVars.invRefreshAlphaParams = { min: 1.0, max: 10.0, step: 0.5 }
+
 // World temperature. Used to determine initial velocities and heat-exchange after collisons.
 globalVars.temperature       =  300;
 globalVars.temperatureParams = { min: 10, max: 1000, step: 10 }
@@ -25,32 +30,21 @@ globalVars.bHeatExchange = true;
 
 // Determines the scaling between the simulation and the default pixel size.
 // Defaults to 1 pixel = 10 pm = 0.1 Angs.
-globalVars.lengthScale     = 10;
-globalVars.lengthScaleParams = { min: 10, max: 50, step: 1 }
+globalVars.distScale     = 10;
+globalVars.distScaleParams = { min: 10, max: 60, step: 5 }
 
 globalVars.zoomScale      =  10; //This is updated on load according to window size.
-
-// Determines the length of shadows as the screen refreshes each frame.
-globalVars.refreshAlpha = 0.4;
 
 // Converts the default units to pm per fs.
 globalVars.timeFactor = 1e-3;
 globalVars.timeDelta  =  10.0;
-globalVars.timeDeltaParams = { min: 10.0, max: 200.0, step: 5.0 }
-
-// Simulation specific parameters.
-// globalVars.numMolecules    =  200;
-// globalVars.numMoleculesMin =  100;
-// globalVars.numMoleculesMax = 1000;
-globalVars.densMolecules     =  0.75;
-globalVars.densMoleculesParams = { min: 0.05, max: 3.00, step: 0.05 }
+globalVars.timeDeltaParams = { min:  5.0, max: 200.0, step: 5.0 }
 
 // molecules per nm^2
 // Notes: an oxygen molecule has an area of ~0.1 nm^2
-// globalVars.densityMolecules     =  0.3;
-// globalVars.densityMoleculesMin  =  0.00;
-// globalVars.densityMoleculesMax  =  1.00;
-// globalVars.densityMoleculesStep =  0.01;
+globalVars.densMolecules     =  0.75;
+globalVars.densMoleculesParams = { min: 0.05, max: 2.00, step: 0.05 }
+
 globalVars.statisticsUpdateInterval = 100;
 
 // Defined by the device screen and the length scale variable
@@ -61,10 +55,10 @@ globalVars.initialPreset = "nitrogen dioxide";
 globalVars.bPresetsOverwriteParams = true; //Prevent the initial loading from overwriting HTML overrides.
 
 //Tab.
-globalVars.initialOpenTab='controls';
+globalVars.initialOpenTab='presets';
 
-// Molecular colouring section.
-globalVars.moleculeColourScheme = "molecule"; //Choices: 'atom' or 'molecule'
+// Molecular colouring section. Superceded by Drawing style.
+//globalVars.moleculeColourScheme = "molecule"; //Choices: 'atom' or 'molecule'
 
 // Summons a map instance. Use map.get(X) as syntax.
 function get_html_variables() {
@@ -105,7 +99,7 @@ globalVars.presets = {};
 */
 // Noble Gas, i.e. hard spheres.
 var temp = globalVars.presets[ "noble gas" ] = {};
-temp.lengthScale = 20;
+temp.distScale = 20;
 temp.timeDelta = 20;
 temp.worldTemperature = 300;
 temp.bDoHeatExchange = true;
@@ -115,13 +109,16 @@ temp.numComponentsShow = 5;
 temp.componentIDs    = [ "He", "Ne", "Ar", "Kr", "Xe" ];
 temp.componentRatios = [ 16, 8, 4, 2, 1 ];
 
+/*
+    Note: one molecule of ideal gas occupies 11.9 nm^2  at SATP, or 41.2 nm^3 in 3D.
+*/
 temp = globalVars.presets[ "atmosphere" ] = {};
-temp.lengthScale = 30;
-temp.timeDelta = 50;
+temp.distScale =  80;
+temp.timeDelta = 100;
 temp.worldTemperature = 300;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 400;
-temp.densMolecules = 0.7;
+temp.densMolecules = 0.1;
 temp.numComponentsShow = 4;
 temp.componentIDs    = [ "N₂", "O₂", "Ar", "H₂O" ];
 temp.componentRatios = [ 0.78, 0.21, 0.01, 0.02 ];
@@ -131,7 +128,7 @@ temp.componentRatios = [ 0.78, 0.21, 0.01, 0.02 ];
     When there's ~40% of N2O4 already present (~300K), the 2D collision dynamics mean that they effectively become a blocking gas which inhibit further formation of N2O4.
 */
 temp = globalVars.presets[ "nitrogen dioxide" ] = {};
-temp.lengthScale  = 30;
+temp.distScale  = 30;
 temp.timeDelta    = 200;
 temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
@@ -142,7 +139,7 @@ temp.componentIDs    = [ "NO₂", "N₂O₄" ];
 temp.componentRatios = [ 0.6, 0.4 ];
 
 temp = globalVars.presets[ "hydrogen iodide equilibrium" ] = {};
-temp.lengthScale  = 20;
+temp.distScale  = 20;
 temp.timeDelta    = 20;
 temp.worldTemperature = 600;
 temp.bDoHeatExchange = true;
@@ -154,8 +151,8 @@ temp.componentRatios = [ 0.5, 0.5, 0.0 ];
 temp.componentHidePlot = [ "H•", "I•" ];
 
 temp = globalVars.presets[ "ozone layer formation" ] = {};
-temp.lengthScale = 30;
-temp.timeDelta = 40;
+temp.distScale = 30;
+temp.timeDelta = 100;
 temp.worldTemperature = 300;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 400;
@@ -166,7 +163,7 @@ temp.componentRatios = [ 0.78, 0.21, 0.01, 0.0 ];
 temp.componentHidePlot = [ "N₂" ];
 
 temp = globalVars.presets[ "combustion - H2 and O2 basic" ] = {};
-temp.lengthScale  = 30;
+temp.distScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 700;
 temp.bDoHeatExchange = true;
@@ -178,7 +175,7 @@ temp.componentRatios = [ 0.67, 0.33, 0.0 ];
 temp.componentHidePlot = [ "O•", "H•", "OH•" ];
 
 temp = globalVars.presets[ "combustion - H2 and O2 advanced" ] = {};
-temp.lengthScale  = 30;
+temp.distScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 700;
 temp.bDoHeatExchange = true;
@@ -190,7 +187,7 @@ temp.componentRatios = [ 0.67, 0.33, 0.0 ];
 temp.componentHidePlot = [ "O•", "H•", "OH•", "HO₂•" ];
 
 temp = globalVars.presets[ "combustion - hydrocarbon" ] = {};
-temp.lengthScale  = 30;
+temp.distScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 600;
 temp.bDoHeatExchange = true;
@@ -471,7 +468,7 @@ globalVars.presetReactions[ "combustion - H2 and O2 advanced" ] = [
         productAngleRanges:  [ 360,  90 ],        
         EActivation:  0.3, DeltaH: -23.0,
         bDoReverse: false,
-        //Avoid alternative pathways for hydroxyn radical productions for now? These two seem like the lowest energy path for kickstarting the reaction process... TODO: encode symmetry.
+        //Avoid alternative pathways for hydroxyl radical productions for now? These two seem like the lowest energy path for kickstarting the reaction process... TODO: encode symmetry.
     },
     { 
         // The other hydrogen radical formation path. Knock-on reaction. Use Transfer as a temporary shoe-in.

@@ -28,8 +28,8 @@ class Simulation {
         this.bHeatExchange = true ;
         
         this.timeFactor = 0.001; // Convert time units from picoseconds, by default to femtoseconds.
-        this.lengthScale  = 10; // Convert spatial units. Currently used to convert pm to pixels.        
-
+        this.distScale  = 10; // Convert spatial units. Currently used to convert pm to pixels.        
+        
         this.xBounds = new Vector2D(0, 1);
         this.yBounds = new Vector2D(0, 1);
         this.xMaxTarget = undefined;
@@ -40,6 +40,7 @@ class Simulation {
         this.graphicalContext = null ;        
         this.refreshAlpha = 0.4 ;
         this.bDrawMolecules = true;        
+        this.molDrawStyle = 'molecule';
         
         // Accounting features. The statistics natively uses a running average to keep track of the last 
         // uses this.statsUpdateInterval as a marker for the length.
@@ -93,7 +94,7 @@ class Simulation {
         this.graphicalContext = ctx ;
         this.refreshAlpha = alpha ;
     }
-    
+        
     // NB: this one function should never be called while the simulation is running.
     set_target_number_of_molecules( nMol ) { this.nMoleculesTarget = nMol; }
     set_target_nMols_by_density( dens ) { this.nMoleculesTarget = Math.ceil( dens * this.measure_volume() ); }
@@ -102,11 +103,19 @@ class Simulation {
     get_world_temperature() { return this.temperature; }
     set_bool_heat_exchange( bool ) { this.bHeatExchange = bool; }
     get_bool_heat_exchange() { return this.bHeatExchange; }
-    set_bool_draw_molecules( bool ) { this.bDrawMolecules = bool; }
-    set_world_length_scale( x ) { this.lengthScale = x ; }
-    get_world_length_scale() { return this.lengthScale; }
+
+    set_world_length_scale( x ) { this.distScale = x ; }
+    get_world_length_scale() { return this.distScale; }
     set_world_time_factor( x ) { this.timeFactor = x ; }
     get_world_time_factor() { return this.timeFactor; }  
+    
+    set_refresh_alpha( x ) { this.refreshAlpha = x; }   
+
+    set_bool_draw_molecules( bool ) { this.bDrawMolecules = bool; }
+    set_draw_style( type, val ) {
+        //Assume type is molecules for now, can 
+        this.molDrawStyle = val;
+    }
     
     // Updating overall simulation speed will also affect some reaction properties.
     set_world_time_delta( x ) {        
@@ -124,15 +133,15 @@ class Simulation {
         return [ this.xBounds, this.yBounds ];
     }
     set_world_boundaries( xMax, yMax ) {
-        this.xBounds[1] = xMax * this.lengthScale;
-        this.yBounds[1] = yMax * this.lengthScale;
+        this.xBounds[1] = xMax * this.distScale;
+        this.yBounds[1] = yMax * this.distScale;
         this.xMaxTarget = this.xBounds[1];
     }
     
     update_values_from_globals() {
         this.set_world_time_factor( globalVars.timeFactor );
         this.set_world_time_delta( globalVars.timeDelta );
-        this.set_world_length_scale( globalVars.lengthScale );
+        this.set_world_length_scale( globalVars.distScale );
         this.set_world_boundaries( globalVars.worldWidth, globalVars.worldHeight );
         this.set_world_temperature( globalVars.temperature );
         this.set_bool_heat_exchange( globalVars.bHeatExchange );
@@ -257,7 +266,7 @@ class Simulation {
         this.initialise_moletype_accounting( this.gasComp.get_component_names() );
         
         // Initial safety check.
-        this.assert_maximum_safe_density();
+        this.constrain_maximum_density();
 
         // Place molecules 
         switch ( this.gasComp.type ) {
@@ -293,7 +302,9 @@ class Simulation {
             this.create_data_frame_entry( name, name, colour );
         });        
 
-        //Initial setup of data.
+        // Create graphical icons for atoms for use in putImageData.
+
+        //Initial setup of statistical data.
         this.update_statistics();
         this.push_current_stats();
         
@@ -338,9 +349,9 @@ class Simulation {
         return true;
     }
 
-    assert_maximum_safe_density() {
+    constrain_maximum_density() {
         // Inverse density measures the average amount of space available to each molecule.
-        const limitRatio = 0.5 ;
+        const limitRatio = 0.4 ;
         const volume = this.measure_volume() * 1e-6 ;
         const targetVolumePerMol = volume / this.nMoleculesTarget;
         let maxMolVolume = 0.0, molVolume = 0.0;
@@ -362,7 +373,7 @@ class Simulation {
         if ( alpha === undefined ) { alpha = this.refreshAlpha; }
         const ctxLoc = this.graphicalContext ;
         const wWindow = ctxLoc.canvas.width, hWindow = ctxLoc.canvas.height;
-        const wSim = this.xBounds[1] / this.lengthScale;
+        const wSim = this.xBounds[1] / this.distScale;
         if ( wSim >= wWindow ) {
             //Simulation at maximum possible extent.
             ctxLoc.fillStyle = `rgba(255, 255, 255, ${alpha})`;
@@ -388,7 +399,7 @@ class Simulation {
     draw() {
         this.draw_background();
         for (const mol of this.molecules) {
-            mol.draw(this.graphicalContext);
+            mol.draw( this.graphicalContext, this.molDrawStyle );
         }
     }
     
@@ -407,6 +418,26 @@ class Simulation {
             this.modules[i].draw_call( ctxLoc );
         }
         
+        //Call the relevant function for molecule drawing.
+        this.draw_molecules_all();
+    }
+    
+    draw_molecules_all() {
+        switch( this.molDrawStyle ) {
+            case "molecule":
+                this.draw_molecules_as_mols();                
+                break;
+            case "atom":
+                this.draw_molecules_as_atoms();                
+                break;
+            default:
+                throw `Invalid molecule drawing setting detected in simulation object! ${this.molDrawStyle}`;                
+        }
+    }
+    
+    draw_molecules_as_mols() {
+   
+        const ctxLoc = this.graphicalContext;
         //Collect every atom grouped by molecule colour.
         const xPos = {}, yPos = {}, rads = {}, colours = {};
         for ( const name of this.moletypeNames ) {
@@ -416,9 +447,9 @@ class Simulation {
         for (const mol of this.molecules) {
             for (let i = 0; i < mol.nAtoms; i++) {
                 const off = Vector2D.rotate( mol.atomOffsets[i], mol.th );                
-                xPos[mol.name].push( (mol.p.x + off.x) / globalVars.lengthScale );
-                yPos[mol.name].push( (mol.p.y + off.y) / globalVars.lengthScale );
-                rads[mol.name].push( mol.atomRadii[i] / globalVars.lengthScale );
+                xPos[mol.name].push( (mol.p.x + off.x) / globalVars.distScale );
+                yPos[mol.name].push( (mol.p.y + off.y) / globalVars.distScale );
+                rads[mol.name].push( mol.atomRadii[i] / globalVars.distScale );
             }
         }
         
@@ -435,6 +466,13 @@ class Simulation {
             }
             ctxLoc.stroke();
             ctxLoc.fill();
+        }
+    }
+    
+    //TODO convent tp putImageData
+    draw_molecules_as_atoms() {
+        for (const mol of this.molecules) {
+            mol.draw( this.graphicalContext, this.molDrawStyle );
         }
     }
     
@@ -496,8 +534,8 @@ class Simulation {
             this.resolve_molecule_changes( arrAdd, arrDel );            
             // Draw new molecules separately in an asynchronous implementation.
             if ( this.bDrawMolecules ) {
-                for (const mol of arrAdd) { mol.draw( this.graphicalContext ); }
-            }            
+                for (const mol of arrAdd) { mol.draw( this.graphicalContext, this.molDrawStyle ); }
+            }
             //stop_simulation();
         }
     }
@@ -608,6 +646,7 @@ class Simulation {
         }
                 
         await drawPromise;
+        
     }
 
     debug() {
@@ -1313,9 +1352,9 @@ class PhotonEmitterModule {
         ctx.lineWidth = 1;
         ctx.strokeStyle = this.photonColour;
         for ( let i = 0; i < n; i++ ) {
-            ctx.moveTo( this.posXPhoton[i]/globalVars.lengthScale, 0 );
-            ctx.lineTo( this.posXPhoton[i]/globalVars.lengthScale, this.posYPhoton[i]/globalVars.lengthScale );
-            //console.log( this.posYPhoton[i]/globalVars.lengthScale );
+            ctx.moveTo( this.posXPhoton[i]/globalVars.distScale, 0 );
+            ctx.lineTo( this.posXPhoton[i]/globalVars.distScale, this.posYPhoton[i]/globalVars.distScale );
+            //console.log( this.posYPhoton[i]/globalVars.distScale );
         }
         //ctx.closePath();
         ctx.stroke();

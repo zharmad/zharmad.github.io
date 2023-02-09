@@ -32,24 +32,21 @@ function update_slider_values( slider, args ) {
     if ( undefined != p.step ) { slider.step = p.step; }
 }
 
-// Non-live-updating buttons.
-const sliderLengthScale    = document.getElementById("sliderLengthScale");
-const textFieldLengthScale = document.getElementById("textFieldLengthScale");
-update_slider_values( sliderLengthScale, { value: globalVars.lengthScale, params: globalVars.lengthScaleParams });
-textFieldLengthScale.innerHTML = sliderLengthScale.value;
-sliderLengthScale.oninput = function() {
-    globalVars.lengthScale       = this.value;
-    textFieldLengthScale.innerHTML = this.value;
+// = = Initial Composition GUI = =
+const sliderDistScale    = document.getElementById("sliderDistScale");
+const textFieldDistScale = document.getElementById("textFieldDistScale");
+const textFieldSimArea   = document.getElementById("textFieldSimArea");
+update_slider_values( sliderDistScale, { value: globalVars.distScale, params: globalVars.distScaleParams });
+textFieldDistScale.innerHTML = sliderDistScale.value;
+sliderDistScale.oninput = function() {
+    globalVars.distScale       = this.value;
+    textFieldDistScale.innerHTML = this.value;
+    const area = globalVars.worldWidth * globalVars.worldHeight * globalVars.distScale**2.0  * 1e-6;
+    textFieldSimArea.innerHTML = area.toFixed(0);
+    const numEst = globalVars.densMolecules * area ;
+    textFieldNumMolecules.innerHTML = numEst.toFixed(0);
 } 
 
-// const sliderNumMolecules = document.getElementById("sliderNumMolecules");
-// const textFieldNumMolecules = document.getElementById("textFieldNumMolecules");
-// update_slider_values( sliderNumMolecules, { value: globalVars.numMolecules, min: globalVars.numMoleculesMin, max: globalVars.numMoleculesMax });
-// textFieldNumMolecules.innerHTML = sliderNumMolecules.value;
-// sliderNumMolecules.oninput = function() {
-    // globalVars.numMolecules   = this.value;
-    // textFieldNumMolecules.innerHTML = this.value;    
-// } 
 const sliderDensMolecules    = document.getElementById("sliderDensMolecules");
 const textFieldDensMolecules = document.getElementById("textFieldDensMolecules");
 const textFieldNumMolecules  = document.getElementById("textFieldNumMolecules");
@@ -59,7 +56,7 @@ textFieldNumMolecules.innerHTML = 'unknown' ;
 sliderDensMolecules.oninput = function() {
     globalVars.densMolecules = this.value;
     textFieldDensMolecules.innerHTML = this.value;
-    const numEst = this.value * globalVars.worldWidth * globalVars.worldHeight * globalVars.lengthScale**2.0 * 1e-6;
+    const numEst = this.value * globalVars.worldWidth * globalVars.worldHeight * globalVars.distScale**2.0 * 1e-6;
     textFieldNumMolecules.innerHTML = numEst.toFixed(0);
 }
 
@@ -70,7 +67,7 @@ togglePresetsOverwriteParams.oninput = function () {
     globalVars.bPresetsOverwriteParams = togglePresetsOverwriteParams.checked;
 }
 
-// Live-updating buttons.
+// Live simulation settings.
 const sliderWorldTemperature = document.getElementById("sliderWorldTemperature");
 const textFieldWorldTemperature = document.getElementById("textFieldWorldTemperature");
 update_slider_values( sliderWorldTemperature, { value: globalVars.temperature, params: globalVars.temperatureParams });
@@ -99,6 +96,27 @@ sliderTimeDelta.oninput = function() {
     sim.set_world_time_delta( this.value );
 } 
 
+var sleepDurationPerFrame = 0;
+var sliderSleepDurationPerFrame = document.getElementById("sliderSleepDurationPerFrame");
+var textFieldSleepDurationPerFrame = document.getElementById("textFieldSleepDurationPerFrame");
+sliderSleepDurationPerFrame.oninput = function() {
+    const t = ( -1 == this.value ) ? 0 : ( 10.0 ** ( 0.1 * this.value + 1) ).toFixed(0);
+    textFieldSleepDurationPerFrame.innerHTML = t;
+    sleepDurationPerFrame = t;
+    //sim.set_sleep_duration_per_step( this.value );
+} 
+
+// Graphical and display settings.
+var sliderInvRefreshAlpha = document.getElementById("sliderInvRefreshAlpha");
+var textFieldInvRefreshAlpha = document.getElementById("textFieldInvRefreshAlpha");
+update_slider_values( sliderInvRefreshAlpha, { value: (1.0/globalVars.refreshAlpha).toFixed(1), params: globalVars.invRefreshAlphaParams });
+textFieldInvRefreshAlpha.innerHTML = sliderInvRefreshAlpha.value;
+sliderInvRefreshAlpha.oninput = function() {    
+    globalVars.refreshAlpha = 1.0/this.value;
+    sim.set_refresh_alpha( 1.0/this.value );    
+    textFieldInvRefreshAlpha.innerHTML = ( this.value > 1 ) ? this.value : 'None';
+} 
+
 const toggleUpdateSimWindow = document.getElementById("toggleUpdateSimWindow");
 toggleUpdateSimWindow.checked = true;
 //console.log( togglePresetsOverwriteAllParams.checked );
@@ -107,6 +125,11 @@ toggleUpdateSimWindow.oninput = function () {
     sim.set_bool_draw_molecules( toggleUpdateSimWindow.checked );
 }
 
+const buttonMoleculeDrawStyle = document.getElementById("buttonMoleculeDrawStyle");
+function update_molecule_draw_style( style ) {
+    sim.set_draw_style( 'molecule', style );
+    buttonMoleculeDrawStyle.innerHTML = style;
+}
 /*
     Module dependent items.
 */
@@ -170,7 +193,7 @@ const chartDoughnutGr  = new Chart( canvasDoughnutGr, { type: 'doughnut',
 });
 chartDoughnutGr.options.datasets.doughnut.borderColor='#000';
 chartDoughnutGr.options.plugins.title.display=true;
-chartDoughnutGr.options.plugins.title.text='Current Composition';
+chartDoughnutGr.options.plugins.title.text='Composition at last update';
 chartDoughnutGr.options.plugins.title.padding=2;
 //chartDoughnutGr.options.responsive = true;
 chartDoughnutGr.options.maintainAspectRatio = false;
@@ -301,14 +324,18 @@ globalVars.bPresetsOverwriteParams = true;
 
 //document.getElementById("textFieldCurrentWorldTemperature").innerHTML = sim.textCurrentWorldTemperature;
 
-
 function loop() {
     if (!bRun) { return; }   
     sim.step().catch( err=> {
         stop_simulation();   
         throw err;
     });
-    requestAnimationFrame(loop);
+    
+    if ( sleepDurationPerFrame > 0 ) {
+        setTimeout( function() { requestAnimationFrame(loop); }, sleepDurationPerFrame );
+    } else {
+        requestAnimationFrame(loop);
+    }
 }
 
 /* Functions linked-to by HTML5 buttons. Passthrough to simulations javascript as neceesary. */
@@ -562,8 +589,8 @@ function overwrite_global_values( strType ) {
     
     const p = globalVars.presets[strType];    
     
-    sliderLengthScale.value = p.lengthScale;
-    sliderLengthScale.oninput();        
+    sliderDistScale.value = p.distScale;
+    sliderDistScale.oninput();        
     // sliderNumMolecules.value = p.numMolecules;
     // sliderNumMolecules.oninput();
     sliderDensMolecules.value = p.densMolecules;

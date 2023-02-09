@@ -12,7 +12,7 @@
     <!-- Main Window. Shows the molecules and main navigation buttons. -->
     <div id="mainWindow">
         <div id="containerSidebarButtons">
-            <button class="buttonOpenSidebar" onclick="toggle_sidebars('presets')">☀ Presets</button>
+            <button class="buttonOpenSidebar" onclick="toggle_sidebars('presets')">🗎 Intro</button>
             <button class="buttonOpenSidebar" onclick="toggle_sidebars('composition')">🥧 Composition</button>            
             <button class="buttonOpenSidebar" onclick="toggle_sidebars('controls')">☰ Controls</button>
             <button class="buttonOpenSidebar" onclick="toggle_sidebars('analysisLine')">📈 Plots</button>
@@ -36,16 +36,53 @@
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
             <hr width="50%" align="center" color="grey" size="2">                
-            <p>Preset simulation conditions</p>
-            <p><button onclick="generate_preset_simulation('noble gas')">Mixture of Noble gases</button></p>        
-            <p><button onclick="generate_preset_simulation('atmosphere')">Earth Atmosphere</button></p>
-            <p><button onclick="generate_preset_simulation('ozone layer formation')">Ozone layer equilibrium</button></p>
-            <p><button onclick="generate_preset_simulation('nitrogen dioxide')">Nitrogen dioxide equilibrium</button></p>
-            <p><button onclick="generate_preset_simulation('hydrogen iodide equilibrium')">Hydrogen iodide equilibrium</button></p>
-            <p><button onclick="generate_preset_simulation('combustion - H2 and O2 basic')">Oxygen and hydrogen combustion</button></p>
+            Load simulation preset:
+            <div class="dropdown">
+                <button id="buttonPresetChoices" class="buttonDropDown">click here</button>
+                <div id="divSimulationPresetOptions" class="dropdown-content">
+                    <a onclick="generate_preset_simulation('noble gas')">Mixture of Noble gases</a>        
+                    <a onclick="generate_preset_simulation('atmosphere')">Earth Atmosphere</a>
+                    <a onclick="generate_preset_simulation('ozone layer formation')">Ozone layer equilibrium</a>
+                    <a onclick="generate_preset_simulation('nitrogen dioxide')">Nitrogen dioxide equilibrium</a>
+                    <a onclick="generate_preset_simulation('hydrogen iodide equilibrium')">Hydrogen iodide equilibrium</a>
+                    <a onclick="generate_preset_simulation('combustion - H2 and O2 basic')">Oxygen and hydrogen combustion (simplified)</a>
+                    <a onclick="generate_preset_simulation('combustion - H2 and O2 advanced')">Oxygen and hydrogen combustion (complete, WIP)</a>
+                </div>
+            </div>
             <hr width="50%" align="center" color="grey" size="2">
-            <p><label class="switchToggle"><input type="checkbox" id="togglePresetsOverwriteParams"><span class="sliderToggle round"></span></label> Overwrite all parameters if possible</p>
-        </div>       
+            <p><label class="switchToggle"><input type="checkbox" id="togglePresetsOverwriteParams"><span class="sliderToggle round"></span></label> Overwrite existing parameters on load</p>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            
+            <h2>2DChemistry</h2>
+            
+            <p>This is a gas-phase toy model designed to help you understand chemical processes and reactions, in terms of what's going on at the atomic level.</p>
+            
+            <p>In this flattened universe, molecules behave like hard circles that obey Newtownian laws of motion. They collide with each other and with the wall boundaries, changing direction and rotational speed as needed to imitate their counterparts in our own reality.
+            
+            <p>Whenever two reactant molecules collide in an acceptable orientation and with sufficient energy, its corresponding product molecules will then be formed. This is collision theory in a nutshell.</p>
+            
+            <p>In addition, unstable molecules may randomly decompose if it has sufficient rotational energy to do so.</p>
+            
+            <p>The above rules are all you need to obtain a conceptual understanding of various high school chemistry content.</p>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            
+            <p>Physical quantities from our universe have been copied over with one exception: the amount of energy required or transferred during reactions. These are divided by ten so that, within the tiny length and time scales of the toy model, it becomes feasible for you to observe chemical processes in one sitting.</p>
+            
+            <p>Thus, the standard units are:
+            <ul>
+                <li>pico/nanometers,</li>
+                <li>femto/picoseconds,</li>
+                <li>Kelvin,</li>
+                <li>kilojoules,</li>
+                <li>atomic-mass-units, and</li>
+                <li>moles.</li>
+            </ul>
+            If you wish to check values in this toy model against their equivalents in our world, please note that both the energy division and the compression from 3D to 2D will implact multiple measurements. These include the average <a href="https://en.wikipedia.org/wiki/Maxwell%E2%80%93Boltzmann_distribution">speed of gas molecules</a>, rates of reaction, <a href="https://en.wikipedia.org/wiki/Autoignition_temperature">autoignition temperature</a>, <emph>etc.</emph></p>
+            
+            The simulation preset button at the top of this panel will get you started on a few different models.
+        </div>
 
         <!-- Sidebar for simulation controls. -->
         <!-- Note: Values will be overrriden by global values when main.js is loaded. -->
@@ -65,32 +102,49 @@
             <!-- Pressure: <span id="textFieldCurrentPressure"></span> amu ps⁻²</br> -->
             </p>
             
-            <hr width="50%" align="center" color="grey" size="2">
             <div id="toolbar" class="slidecontainer">            
             <ul>
-                <li>Note: Some settings require the simulation to be reset.</li>
                 <li>
-                    One pixel equals: <span id="textFieldLengthScale"></span> pm.
-                    <input type="range" min="5" max="30" step="1" value="10" class="slider" id="sliderLengthScale">
-                </li>
-                
-                <li>
-                    Sim speed: <span id="textFieldTimeDelta"></span> fs per step.
-                    <input type="range" min="10.0" max="100.0" step="10.0" value="10.0" class="slider" id="sliderTimeDelta">
+                    <hr width="50%" align="center" color="grey" size="2">
+                    <p>Simulation settings:</p>
                 </li>                
-                
                 <li>
                     World Temperature: <span id="textFieldWorldTemperature"></span>
                     <input type="range" min="10" max="1000" value="300" step="10" class="slider" id="sliderWorldTemperature">
-                </li>
-                
+                </li>                
                 <li>
                     <label class="switchToggle"><input type="checkbox" id="toggleDoHeatExchange"><span class="sliderToggle round"></span></label>
                     Do heat exchange with outside world when a molecule collides with simulation boundaries
                 </li>
+                <li>
+                    Sim speed: <span id="textFieldTimeDelta"></span> fs simulation time per step.
+                    <input type="range" min="10.0" max="100.0" step="10.0" value="10.0" class="slider" id="sliderTimeDelta">
+                </li>                
+                <li>
+                    (Pause for <span id="textFieldSleepDurationPerFrame">0</span> ms real-life time between each step.)
+                    <input type="range" min="-1" max="24" step="1" value="-1" class="slider" id="sliderSleepDurationPerFrame">
+                </li>
                 
                 <li>
+                    <hr width="50%" align="center" color="grey" size="2">
+                    <p>Graphical settings:</p>
+                </li>                
+                <li>
                     <label class="switchToggle"><input type="checkbox" id="toggleUpdateSimWindow"><span class="sliderToggle round"></span></label> Show/hide atom movements
+                </li>
+                <li>
+                    Motion Trails: <span id="textFieldInvRefreshAlpha"></span>
+                    <input type="range" min="1.0" max="10.0" value="2.5" step="0.5" class="slider" id="sliderInvRefreshAlpha">
+                </li>
+                <li>
+                    Display style:
+                    <div class="dropdown">
+                        <button id="buttonMoleculeDrawStyle" class="buttonDropDown">molecule</button>
+                        <div id="divMoleculeDrawStyleOptions" class="dropdown-content">
+                            <a onclick="update_molecule_draw_style('molecule')">molecule</a>
+                            <a onclick="update_molecule_draw_style('atom')">atom</a>
+                        </div>
+                    </div>
                 </li>
             </ul>
             </div>
@@ -114,26 +168,25 @@
             </p>
             <hr width="50%" align="center" color="grey" size="2">
         
+            <div class="divDynamicBox">
+                <p>Distance scale: 1 pixel = <span id="textFieldDistScale"></span> pm</p>
+                <input type="range" min="5" max="30" step="1" value="10" class="slider" id="sliderDistScale">
+            </div>
+            <div class="divDynamicBox">
+                <p>Density: <span id="textFieldDensMolecules"></span> nm⁻²
+                <input type="range" min="0.1" max="5.0" step="0.05" value="0.3" class="slider" id="sliderDensMolecules">
+            </div>
+            <p>Initial simulation area: <span id="textFieldSimArea"></span> nm²</p>
+            <p>Est. number of molecules: <span id="textFieldNumMolecules"></span></p>
+            
+            <hr width="50%" align="center" color="grey" size="2">
+            
             <div style="height: 30%">
                 <canvas id="canvasMolComposition" height="30%" class="canvasPieGraph"></canvas>
             </div>
             
             <hr width="50%" align="center" color="grey" size="2">
-            <p>Set initial composition:</p>
-
-
-            <!--            
-            <div class="divDynamicBox">
-                <p>#-Molecules: <span id="textFieldNumMolecules"></span></p>
-                <input type="range" min="1" max="500" value="50" class="slider" id="sliderNumMolecules">
-            </div>            
-            (~<span id="textFieldNumMolecules"></span> molecules)</p>
-            -->            
-            <div class="divDynamicBox">
-                <p>Density: <span id="textFieldDensMolecules"></span> nm⁻³, or ~<span id="textFieldNumMolecules"></span> molecules</p>
-                <input type="range" min="0.1" max="5.0" step="0.05" value="0.3" class="slider" id="sliderDensMolecules">
-            </div>
-            <hr width="50%" align="center" color="grey" size="2">
+            <p>Initial composition:</p>
             <div id="divInputComponent0" class="divDynamicBox">
                 <p><span id="colourBoxComponent0">  </span> <span id="textFieldComponent0"></span> : <span id="textPercentageComponent0"></span>%</p>
                 <input type="range" min="0" max="100" value="50" class="slider" id="sliderPercentageComponent0">
@@ -211,7 +264,7 @@
                 <div id="divReactionDragramOptions" class="dropdown-content">
                     <a onclick="update_reaction_diagram()">None</a>
                 </div>
-            </div>            
+            </div>
             
             <canvas id="canvasReactionDiagramGraph" height="200" class="canvasGraph"></canvas>
             

@@ -28,7 +28,7 @@ h1 {
 
 
 p {
-  margin: 5px;
+  margin: 5px 5px 10px 5px;
 }
 
 #toolbar ul {
@@ -212,13 +212,14 @@ input:checked + .sliderToggle:before {
   /* font-size: 12px; */
 }
 
-/* Dynamic sub-divs */
+/* Dynamic sub-divs. */
 .divDynamicBox {
   width: 85%;
   align: middle;
   border: 2px solid #888;
   border-radius: 8px;
-  margin:  5%;
+  /* Top right bottom left. */
+  margin:  2% 5% 2% 5%;
   padding: 1%;
 }
 
