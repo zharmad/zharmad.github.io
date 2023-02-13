@@ -98,7 +98,7 @@
             <strong>Current statistics</strong></br>
             Molecules: <span id="textFieldCurrentNumMolecules"></span></br>
             Temperature: <span id="textFieldCurrentTemperature"></span> K</br>
-            Volume: <span id="textFieldCurrentVolume"></span> nm²</br>
+            Area: <span id="textFieldCurrentArea"></span> nm²</br>
             <!-- Pressure: <span id="textFieldCurrentPressure"></span> amu ps⁻²</br> -->
             </p>
             
@@ -130,22 +130,24 @@
                     <p>Graphical settings:</p>
                 </li>                
                 <li>
+                    Display style:
+                    <div class="dropdown">
+                        <button id="buttonMoleculeDrawStyle" class="buttonDropDown">molecule-fast</button>
+                        <div id="divMoleculeDrawStyleOptions" class="dropdown-content">
+                            <a onclick="update_molecule_draw_style('molecule-fast')">molecule-fast</a>
+                            <a onclick="update_molecule_draw_style('atom-fast')">atom-fast</a>
+                            <a onclick="update_molecule_draw_style('molecule-slow')">molecule-slow</a>
+                            <a onclick="update_molecule_draw_style('atom-slow')">atom-slow</a>
+                        </div>
+                    </div>
+                </li>
+                <li>
                     <label class="switchToggle"><input type="checkbox" id="toggleUpdateSimWindow"><span class="sliderToggle round"></span></label> Show/hide atom movements
                 </li>
                 <li>
                     Motion Trails: <span id="textFieldInvRefreshAlpha"></span>
                     <input type="range" min="1.0" max="10.0" value="2.5" step="0.5" class="slider" id="sliderInvRefreshAlpha">
-                </li>
-                <li>
-                    Display style:
-                    <div class="dropdown">
-                        <button id="buttonMoleculeDrawStyle" class="buttonDropDown">molecule</button>
-                        <div id="divMoleculeDrawStyleOptions" class="dropdown-content">
-                            <a onclick="update_molecule_draw_style('molecule')">molecule</a>
-                            <a onclick="update_molecule_draw_style('atom')">atom</a>
-                        </div>
-                    </div>
-                </li>
+                </li>                
             </ul>
             </div>
             
@@ -230,9 +232,10 @@
                 <div class="dropdown-content">
                     <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['temperature'])">temperature</a>
                     <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['numMolecules'])"># molecules</a>
-                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['volume'])">volume</a>
+                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['area'])">area</a>
                     <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['density'])">density</a>
                     <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['pressure'])">pressure</a>
+                    <a href="javascript:void(0)" onclick="choose_line_graph_1_contents(['performance'])">performance</a>
                 </div>
             </div>
             
@@ -293,6 +296,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.1.2/dist/chart.umd.js"></script>
     -->
+    
+    <!-- Load WASM module for various functions. Not currently faster than JS. -->
+    <!-- <script src="lib/distCheck.js"></script> -->
+    <!-- <script src="defineWASM.js"></script> -->
     
     <script src="main.js"></script>
   </body>

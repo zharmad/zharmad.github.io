@@ -14,10 +14,50 @@ class Element {
         this.mass = mass;
         this.radius = radius;
         this.colourVec = colourVec;
+        this.image = undefined;
+        this.imageOffset = undefined;
     }
     
     parse_colourVec() {
         return `rgb(${this.colourVec[0]},${this.colourVec[1]},${this.colourVec[2]})`
+    }
+    
+    // To prep for the fast-display update.
+    // Use drawImage rather than putImageData(), in order to include transparency.
+    create_image( canvas, ctx, scale ) {
+        const r = this.radius * scale ;
+        const lineWidth = 0.5;
+        const d = Math.ceil( 2.0 * (r + lineWidth) );
+
+        canvas.width = canvas.height = d;
+        // Draw circle to fill up this canvas.
+        ctx.beginPath();
+        
+        const xCent = d/2, yCent = d/2;        
+        const rI = 0.5 * r;
+        // Use shading to make the circles pop a little more.
+        const colourGradient = ctx.createRadialGradient(xCent, yCent, rI, xCent, yCent, r);
+        colourGradient.addColorStop(0, this.parse_colourVec() );
+        colourGradient.addColorStop(1, 'black');
+        ctx.fillStyle = colourGradient;
+        ctx.lineWidth   = lineWidth;
+        ctx.strokeStyle = 'black';
+        
+        ctx.arc( xCent, yCent, r, 0, 2 * Math.PI );
+        ctx.fill();
+        ctx.stroke();
+        // Copy circle to 
+        //const imageData = ctx.getImageData(0, 0, d, d);        
+        this.image = new Image( d, d );
+        this.image.src = canvas.toDataURL('img/png');
+        this.imageOffset = -d/2;
+        
+        ctx.clearRect( 0, 0, d, d );
+    }
+    
+    draw(ctx, x, y) {
+        const off = this.imageOffset ;
+        ctx.drawImage( this.image, x - this.imageOffset, y - this.imageOffset );
     }
 }
 
@@ -86,6 +126,18 @@ class ElementList {
         for (const e of this.elements) {
             e.radius *= r;
         }
+    }
+    
+    //Creates a temporary canvas to draw on and obtain.
+    create_all_images( scale ) {
+        if ( undefined === scale ) { scale = 1; }
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        for (const e of this.elements) {
+            e.create_image( canvas, ctx, scale );
+        }
+        canvas.remove();
     }
 }
 

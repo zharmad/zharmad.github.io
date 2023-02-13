@@ -11,8 +11,10 @@
 
 // Declare all multi-atom molecules that are supported by this script. Internal offsets positions for drawing purposes.
 // Atoms are stated in their draw order. The internal X/Y-axis are defined according to potential molecular dipoles.
+
 /*
-    This class defines the types of molecules that are supported. It handles the properties that are shared across all copies of such a molecule type:
+    This class is the overall handler for elements and molecule types. It is responsible for generating individual molecules based on their properties.
+    defines the types of molecules that are supported. It handles the properties that are shared across all copies of such a molecule type:
     - n, atoms, offsets, mass, rotI, size, colours, molColours 
     
     The convention for the orientation of the molecule is this:
@@ -21,94 +23,56 @@
 */
 class MoleculeLibrary {
       
-    constructor() {        
-        //if ( undefined === data ) { data = {}; }
-        this.data = {} ;
+    constructor() {
+        this.numEntries = 0;
+        this.entries = {} ;
         this.collisionRadiiFactor = 1.0;
+        
         this.tableOfElements = new ElementList();
         this.tableOfElements.add_all_known_elements();
         this.tableOfElements.rescale_radii( 0.75 );
-        //this.compute_all_derivative_properties();        
     }
     
     //Does not update all molecule types.    
-    get_defined_molecules() { return Object.keys(this.data); }
-    get_entry(name) { return this.data[name]; }
-    get_molecule_color(name) { return this.data[name].molColour; }
-
+    get_defined_molecules() { return Object.keys(this.entries); }
+    get_entry(name) { return this.entries[name]; }
+    get_molecule_property(name, prop) { return this.entries[name][prop]; }    
+    get_molecule_color(name) { return this.entries[name].molColour; }
+    
     reset_library() {
-        delete this.data;
-        this.data = {};
+        delete this.entries;
+        this.entries = {};
+        this.numEntries = 0;
         this.tableOfElements.reset_table();
         this.tableOfElements.rescale_radii( 0.75 );
     }
 
-    add_entry(name, atoms, offsets) {        
-        if ( undefined === offsets ) { throw "Not all arguments are present for add_entry() !"; }
-        let n = atoms.length;
-        if ( n != offsets.length ) { throw "The length of atoms and offset arrys are not the same!"; }        
-        // Overwrite existing entries.
-        if ( this.data[name] != undefined ) { delete this.data[name]; }        
-        this.data[name] = { n, name, atoms, offsets };
-        this.convert_offsets(name);
-        this.compute_derivative_properties(name);
-    }     
+    add_entry_old( name, atoms, offsets, molColour ) {
     
-    convert_offsets(molName) {
-        const d = this.data[molName];
-        for ( let i = 0 ; i < d.n ; i++ ) {
-            if ( !(d.offsets[i] instanceof Vector2D) ) {
-                d.offsets[i] = new Vector2D( d.offsets[i][0], d.offsets[i][1] );                
-            }
-        }        
-    }      
-    
-    //Compute derivative molecular properties that will be used by each molecule.
-    compute_derivative_properties(molName) {        
-        const d = this.data[molName];        
-        let m = 0.0 ; let I = 0.0 ; let size = 0.0 ; let cSum = [0,0,0] ;
-        let c = []; let ar = [];
-        d.nDegrees = (d.n > 1) ? 3 : 2;        
-        for ( let i = 0 ; i < d.n ; i++ ) {               
-            const elem = this.tableOfElements.get_by_name( d.atoms[i] );
-            const radiusAtom  = elem.radius ;
-            const r2 = d.offsets[i].norm2();
-            m += elem.mass;
-            size = Math.max( radiusAtom + Math.sqrt(r2), size );
-            I += elem.mass * r2 ;
-            for (let j = 0 ; j < 3 ; j++ ) { cSum[j] += elem.colourVec[j]; }
-            c.push( elem.parse_colourVec() );
-            ar.push( radiusAtom );
-        }
-        
-        // Make monoatomic molecules have a null rotational kinetic energy.
-        if ( 0.0 == I ) { I = null; }
-        // Assign the newly computed properties back to the data entry.
-        d.mass = m ; d.rotI = I ; d.size = size * this.collisionRadiiFactor ;
-        for (let j = 0 ; j < 3 ; j++ ) { cSum[j] = Math.floor(cSum[j]/d.n) ; }
-        d.molColour = `rgb(${cSum[0]},${cSum[1]},${cSum[2]})`;
-        
-        d.colours = c; d.radii = ar;
+        const args = { name, atoms, offsets };
+        if ( undefined != molColour ) { args.molColour = molColour };        
+        args.collisionRadiiFactor = this.collisionRadiiFactor;
+        args.tableOfElements = this.tableOfElements;        
+        this.entries[name] = new MoleculeType( args );
+        this.numEntries++;        
+    }    
+    add_entry( args ) {
+        args.collisionRadiiFactor = this.collisionRadiiFactor;
+        args.tableOfElements = this.tableOfElements;        
+        this.entries[name] = new MoleculeType( args );
+        this.numEntries++;
     }
     
-    // compute_all_derivative_properties() {
-        // //Process this initial library using the table of Elements information to compute the internal properties
-        // for (const key in this.data ) {
-            // this.convert_offsets(key);            
-            // console.log(`Computing properties of ${key}`);            
-            // this.compute_derivative_properties(key);
-        // }
-    // }
-
+    // Inefficient, but may be useful later.
     set_molecule_colour( molName, strColour ) {
-        this.data[molName].molColour = strColour ;
+        this.entries[molName].set_molecule_colour( strColour );
     }
     
     // Leave room for monoatomid, diatomic and polyatomic later.
     create_molecule( moltype, args ) {
         if ( undefined === args ) { args = {}; }
         var mol = undefined;
-        if ( moltype.n > 1 ) {
+        if ( moltype.numAtoms > 1 ) {
             mol = new MoleculePolyatomic( moltype, args );
         } else {
             mol = new MoleculeMonoatomic( moltype, args );            
@@ -126,10 +90,10 @@ class MoleculeLibrary {
         const molNew = this.create_molecule_by_name( mol.name, { p: mol.p, v: mol.v, th: mol.th, om: mol.om } );
         return molNew;
     }   
-    
+       
     // Meant to be an internal check
     check_com( molName ) {
-        const e = this.data[molName];
+        const e = this.entries[molName];
         var m = undefined;
         const pCOM = new Vector2D( 0.0, 0.0 );
         for ( let i = 0; i < e.n; i++ ) {
@@ -147,68 +111,67 @@ class MoleculeLibrary {
         */
         
         // Basic molecules that populate the atmosphere
-        this.add_entry( "He", ["He"], [ [0.0,0.0] ] );
-        this.add_entry( "Ne", ["Ne"], [ [0.0,0.0] ] );
-        this.add_entry( "Ar", ["Ar"], [ [0.0,0.0] ] );
-        this.add_entry( "Kr", ["Kr"], [ [0.0,0.0] ] );
-        this.add_entry( "Xe", ["Xe"], [ [0.0,0.0] ] );
-        this.add_entry( "H₂", ["H","H"], [ [37.1,0.0],[-37.1,0.0] ] );
-        this.add_entry( "N₂", ["N","N"], [ [54.9,0.0],[-54.9,0.0] ] );
-        this.add_entry( "O₂", ["O","O"], [ [60.4,0.0],[-60.4,0.0] ] );
-        this.add_entry( "H₂O", ["H","H","O"], [ [-52.0,75.7],[-52.0,-75.7],[6.6,0.0] ] );        
-        this.set_molecule_colour("H₂O","#AFE4DE");        
-        this.add_entry( "CH₄", ["H","H","H","H","C"], [ [108.7,0.0],[0.0,108.7],[-108.7,0.0],[0.0,-108.7],[0.0,0.0] ] );
-        this.add_entry( "CO₂", ["O","O","C"], [ [116.2,0.0],[-116.2,0.0],[0.0,0.0] ] );
-        this.add_entry( "CO", ["O","C"], [ [48.4,0.0],[-64.4,0.0] ] );
-        this.add_entry( "NH₃", ["H","H","H","N"], [ [101.2,0.0],[-50.6,87.6],[-50.6,-87.6],[0.0,0.0] ] );
-        this.add_entry( "Cl₂", ["Cl","Cl"], [ [99.4,0.0],[-99.4,0.0] ] );
+        this.add_entry_old( "He", ["He"], [ [0.0,0.0] ] );
+        this.add_entry_old( "Ne", ["Ne"], [ [0.0,0.0] ] );
+        this.add_entry_old( "Ar", ["Ar"], [ [0.0,0.0] ] );
+        this.add_entry_old( "Kr", ["Kr"], [ [0.0,0.0] ] );
+        this.add_entry_old( "Xe", ["Xe"], [ [0.0,0.0] ] );
+        this.add_entry_old( "H₂", ["H","H"], [ [37.1,0.0],[-37.1,0.0] ] );
+        this.add_entry_old( "N₂", ["N","N"], [ [54.9,0.0],[-54.9,0.0] ] );
+        this.add_entry_old( "O₂", ["O","O"], [ [60.4,0.0],[-60.4,0.0] ] );
+        this.add_entry_old( "H₂O", ["H","H","O"], [ [-52.0,75.7],[-52.0,-75.7],[6.6,0.0] ] );        
+        this.set_molecule_colour("H₂O","#AFE4DE");
+        this.add_entry_old( "CH₄", ["H","H","H","H","C"], [ [108.7,0.0],[0.0,108.7],[-108.7,0.0],[0.0,-108.7],[0.0,0.0] ] );
+        this.add_entry_old( "CO₂", ["O","O","C"], [ [116.2,0.0],[-116.2,0.0],[0.0,0.0] ] );
+        this.add_entry_old( "CO", ["O","C"], [ [48.4,0.0],[-64.4,0.0] ] );
+        this.add_entry_old( "NH₃", ["H","H","H","N"], [ [101.2,0.0],[-50.6,87.6],[-50.6,-87.6],[0.0,0.0] ] );
+        this.add_entry_old( "Cl₂", ["Cl","Cl"], [ [99.4,0.0],[-99.4,0.0] ] );
         
         //Nitrogen dioxide equilibrium.
-        this.add_entry( "NO₂", ["O","O","N"], [[14.2,109.9],[14.2,-109.9],[-32.3,0.0]] );
-        this.set_molecule_colour("NO₂", "brown");
-        this.add_entry( "N₂O₄", ["O","O","N","O","O","N"], [[134.3,110.1],[134.3,-110.1],[89.1,0.0],[-134.3,110.1],[-134.3,-110.1],[-89.1,0.0]] );
-        this.set_molecule_colour("N₂O₄", "white");
+        this.add_entry_old( "NO₂", ["O","O","N"], [[14.2,109.9],[14.2,-109.9],[-32.3,0.0]] );
+        this.set_molecule_colour("NO₂", "rgb(180,72,26)"); // reddish Brown
+        this.add_entry_old( "N₂O₄", ["O","O","N","O","O","N"], [[134.3,110.1],[134.3,-110.1],[89.1,0.0],[-134.3,110.1],[-134.3,-110.1],[-89.1,0.0]] );
+        this.set_molecule_colour("N₂O₄", "#FFFFFF");
 
         //Hydrogen iodide equilibrium.
-        this.add_entry( "I₂", ["I","I"], [ [133.3,0.0],[-133.3,0.0] ] );
-        this.add_entry( "HI", ["H","I"], [ [159.6,0.0],[-1.3,0.0] ] );
+        this.add_entry_old( "I₂", ["I","I"], [ [133.3,0.0],[-133.3,0.0] ] );
+        this.add_entry_old( "HI", ["H","I"], [ [159.6,0.0],[-1.3,0.0] ] );
         this.set_molecule_colour("HI", "rgb(240,200,255)"); //HI colour
-        this.add_entry( "I•", ["I"], [[0.0,0.0]] );
-        this.set_molecule_colour("I•", "rgb(64,32,80)"); //Radical colour
+        this.add_entry_old( "I•", ["I"], [[0.0,0.0]] );
+        this.set_molecule_colour("I•", "rgb(80,32,100)"); //Radical colour
 
         //Hydrogen-oxygen combustion.
-        this.add_entry( "H•", ["H"], [[0.0,0.0]] );
+        this.add_entry_old( "H•", ["H"], [[0.0,0.0]] );
         this.set_molecule_colour("H•", "rgb(251,236,93)"); //Maize yellow.
-        this.add_entry( "OH•", ["O","H"], [[5.8,0.0],[-91.2,0.0]] );
+        this.add_entry_old( "OH•", ["O","H"], [[5.8,0.0],[-91.2,0.0]] );
         this.set_molecule_colour("OH•", "rgb(253,118,47)");
-        this.add_entry( "O•", ["O"], [[0.0,0.0]] );
+        this.add_entry_old( "O•", ["O"], [[0.0,0.0]] );
         this.set_molecule_colour("O•", "rgb(127,0,0)");
-        this.add_entry( "H₂O₂", ["H","H","O","O"], [[81.7,94.7],[-81.7,-94.7],[73.8,0.0],[-73.8,0.0]] );
-        this.add_entry( "HO₂•", ["H","O","O"], [[-87.9,-91.1],[-63.9,2.9],[69.4,2.9]] );        
+        this.add_entry_old( "H₂O₂", ["H","H","O","O"], [[81.7,94.7],[-81.7,-94.7],[73.8,0.0],[-73.8,0.0]] );
+        this.add_entry_old( "HO₂•", ["H","O","O"], [[-87.9,-91.1],[-63.9,2.9],[69.4,2.9]] );        
         this.set_molecule_colour("HO₂•", "rgb(254,74,31)");
 
         // Methane-ethane combustion
-        this.add_entry( "C₂H₆", ["H","H","H","H","H","H","C","C"],
+        this.add_entry_old( "C₂H₆", ["H","H","H","H","H","H","C","C"],
                                 [[76.8,109.1],[185.9,0.0],[76.8,-109.1],[-76.8,-109.1],[-185.9,0.0],[-76.8,109.1],
                                 [76.8,0.0],[-76.8,0.0]] );
-        this.add_entry( "C₂H₄", ["H","H","H","H","C","C"],[[123.2,92.9],[123.2,-92.9],[-123.2,-92.9],[-123.2,92.9],[67.0,0.0],[-67.0,0.0]] );
-        this.add_entry( "C₂H₂", ["H","H","C","C"], [[166.4,0.0],[-166.4,0.0],[60.1,0.0],[-60.1,0.0]] );
-        this.add_entry( "CH₃•", ["H","H","H","C"], [[107.9,0.0],[-54.0,93.4],[-54.0,-93.4],[0.0,0.0]] );
+        this.add_entry_old( "C₂H₄", ["H","H","H","H","C","C"],[[123.2,92.9],[123.2,-92.9],[-123.2,-92.9],[-123.2,92.9],[67.0,0.0],[-67.0,0.0]] );
+        this.add_entry_old( "C₂H₂", ["H","H","C","C"], [[166.4,0.0],[-166.4,0.0],[60.1,0.0],[-60.1,0.0]] );
+        this.add_entry_old( "CH₃•", ["H","H","H","C"], [[107.9,0.0],[-54.0,93.4],[-54.0,-93.4],[0.0,0.0]] );
         // Methanol
-        this.add_entry( "CH₃OH", ["H","H","H","H","O","C"], [[-73.3,-112.4],[-182.9,-2.8],[-73.3,106.8],[100.3,87.7],[69.4,-2.8],[-73.3,-2.8]] );
+        this.add_entry_old( "CH₃OH", ["H","H","H","H","O","C"], [[-73.3,-112.4],[-182.9,-2.8],[-73.3,106.8],[100.3,87.7],[69.4,-2.8],[-73.3,-2.8]] );
         // Formaldehyde, not hydroxycarbene.
-        this.add_entry( "CH₂O", ["H","H","O","C"], [[-119.0,94.3],[-119.0,-94.3],[60.2,0.0],[-60.3,0.0]] );
+        this.add_entry_old( "CH₂O", ["H","H","O","C"], [[-119.0,94.3],[-119.0,-94.3],[60.2,0.0],[-60.3,0.0]] );
         // Ketene.
-        this.add_entry( "CH₂CO", ["H","H","O","C","C"], [[-181.4,-94.5],[-181.4,94.5],[118.2,0.0],[-129.3,0.0],[2.2,0.0]] );
+        this.add_entry_old( "CH₂CO", ["H","H","O","C","C"], [[-181.4,-94.5],[-181.4,94.5],[118.2,0.0],[-129.3,0.0],[2.2,0.0]] );
         
         //Ozone layer equilibrium. https://en.wikipedia.org/wiki/Ozone_layer
-        this.add_entry( "O₃", ["O","O","O"], [[22.3,108.9],[22.3,-108.9],[-44.7,0]] );
+        this.add_entry_old( "O₃", ["O","O","O"], [[22.3,108.9],[22.3,-108.9],[-44.7,0]] );
         this.set_molecule_colour("O₃", "rgb(255,127,127)");
-        this.add_entry( "NO", ["O","N"], [[53.9,0.0],[-61.5,0.0]] );
-        this.add_entry( "NO₃•", ["O","O","O","N"], [[61.9,107.2],[61.9,-107.2],[-123.8,0.0],[0,0.0]] );
+        this.add_entry_old( "NO", ["O","N"], [[53.9,0.0],[-61.5,0.0]] );
+        this.add_entry_old( "NO₃•", ["O","O","O","N"], [[61.9,107.2],[61.9,-107.2],[-123.8,0.0],[0,0.0]] );
         // Three reactions. O2 + hv -> 2O ; O + O2 <-> O3 ; O + O3 -> 2O2
         //this.add_entry( "N₂O₅", ["O","O","N","O","N","O","O"], [ ] );
-        //console.log( this.data["CO₂"]);
 
         /*
             Hydrogen sulfide oxidation and direct thermal decomposition. 
@@ -230,13 +193,244 @@ class MoleculeLibrary {
         // this.add_entry('S', ['S']);
         // this.add_entry('S₂', ['S','S']);
     }
+
+    // Make atom-coloured and molecule-coloured image libraries for visualisation.
+    create_all_images() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');        
+        Object.values( this.entries ).forEach( moltype => {
+            moltype.create_images( canvas, ctx );
+        });
+        canvas.remove();
+    }
+    
+    set_current_image( type, distScale ) {
+        Object.values( this.entries ).forEach( moltype => {
+            moltype.set_current_image( type, distScale );
+        });
+    }
+}
+
+/*
+    WIP: Class of molecule types, which should handle the properties for each entry to be created.
+*/
+class MoleculeType {
+    
+    constructor( args ) {
+        
+        if ( undefined === args.tableOfElements ) { throw "Creation of a molecule type requires a table of Elements to be given!"; }
+        if ( undefined === args.name ) { throw "Creation of a molecule type requires a name argument!"; }
+        if ( undefined === args.atoms ) { throw "Creation of a molecule type requires an array of atoms!"; }
+        const n = args.atoms.length;
+        if ( undefined === args.offsets && n > 1 ) { throw "Creation of a polyatomic molecule type requires an array of its atom offsets!"; }
+        if ( n != args.offsets.length ) { throw "The length of atoms and offset arrays are not the same!"; }
+        if ( undefined === args.collisionRadiiFactor ) { args.collisionRadiiFactor = 1.0; }
+        
+        this.numAtoms = n;
+        this.numDegrees = (n > 1) ? 3 : 2;
+        
+        this.name        = args.name;
+        this.atoms       = args.atoms;
+        this.atomOffsets = undefined;
+        this.convert_offsets( args.offsets );
+        
+        this.size = 0.0;
+        this.mass = 0.0;
+        this.rotI = 0.0;
+        
+        this.molColour = undefined;
+        this.atomColours = [];
+        this.atomRadii   = [];
+        this.elements  = [];
+        
+        // Image data for the molecule type. Designed for fast use.
+        this.imageSet = undefined;
+        this.imageNow = undefined;
+        
+        // Molecule colour defaults to the average colour over the atoms.
+        let cSum = [0,0,0] ;        
+        for ( let i = 0 ; i < n ; i++ ) {               
+        
+            const elem = args.tableOfElements.get_by_name( this.atoms[i] );
+            this.elements.push( elem );
+
+            this.mass += elem.mass;
+            
+            const radiusAtom  = elem.radius ;
+            this.atomRadii.push( radiusAtom );
+            
+            const r2 = this.atomOffsets[i].norm2();
+            this.rotI += elem.mass * r2 ;            
+            this.size = Math.max( radiusAtom + Math.sqrt(r2), this.size );
+
+            for (let j = 0 ; j < 3 ; j++ ) { cSum[j] += elem.colourVec[j]; }
+            this.atomColours.push( elem.parse_colourVec() );
+            
+        }
+        
+        // Make monoatomic molecules have a null rotational kinetic energy.
+        if ( 0.0 == this.rotI ) { this.rotI = null; }
+        
+        // Assign the newly computed properties back to the data entry.
+        this.size *= args.collisionRadiiFactor ; //TODO shift back to library.
+        this.area = this.size**2.0 * Math.PI;
+        
+        if ( undefined === args.molColour ) {
+            for (let j = 0 ; j < 3 ; j++ ) { cSum[j] = Math.floor(cSum[j]/n) ; }
+            this.molColour = `rgb(${cSum[0]},${cSum[1]},${cSum[2]})`;
+        } else {
+            this.molColour = args.molColour;
+        }
+    }
+
+    convert_offsets( off ) {
+        this.atomOffsets = [];
+        for ( let i = 0 ; i < this.numAtoms ; i++ ) {
+            const v = off[i];
+            if ( !( v instanceof Vector2D ) ) {
+                this.atomOffsets.push( new Vector2D( v[0], v[1] ) );
+            } else {
+                this.atomOffsets.push( v );
+            }
+        }
+    }      
+    
+    
+    /*
+        Pre-create all images for use later. Uses globalVars.as the basis
+    */
+    create_images( canvas, ctx ) {
+        const bInternalCanvas = ( undefined === canvas );
+        if ( bInternalCanvas ) {
+            canvas = document.createElement('canvas');
+            ctx = canvas.getContext('2d');
+        }
+        
+        this.imageSet = {};
+        const param = globalVars.distScaleParams;
+        const arrType = [ "atom", "molecule" ];
+        for ( const type of arrType ) {
+            this.imageSet[type] = {};
+            for ( let ds = param.min; ds <= param.max; ds += param.step ) {
+                if ( undefined == ds || Number.isNaN( ds ) ) {
+                    throw `ERROR in image generation for molecule type ${this.name}: the global distance scale parameter set seemns ill defined! ${param}`;
+                }
+                this.imageSet[type][ds] = this.create_image_internal( canvas, ctx, type, 1.0/ds );
+            }
+        }
+        
+        if ( bInternalCanvas ) { canvas.remove(); }
+    }
+
+    // Use HTML Canvas notation. Return only width/height
+    calculate_draw_dimensions( scale ) {
+        if ( undefined === scale ) { scale = 1.0; }
+        const n = this.numAtoms;
+        var xmin = 0.0, xmax = 0.0, ymin = 0.0, ymax = 0.0;
+        for ( let i = 0; i < n; i++ ) {
+            let x = this.atomOffsets[i].vec[0];
+            let y = this.atomOffsets[i].vec[1];
+            let r = this.atomRadii[i];
+            xmin = ( xmin > x - r ) ? x - r : xmin;
+            xmax = ( xmax < x + r ) ? x + r : xmax;
+            ymin = ( ymin > y - r ) ? y - r : ymin;
+            ymax = ( ymax < y + r ) ? y + r : ymax;
+        }
+        return [ scale * ( xmax - xmin ), scale * ( ymax - ymin ) ];
+    }
+    
+    /*
+        This will create a shaded circle for each atom.
+    */
+    create_image_internal( canvas, ctx, type, scale ) {
+        
+        const lineWidth = 0.5;
+        const dim = this.calculate_draw_dimensions( scale );
+
+        var colourEdge = "#000000"; // Black for now.        
+
+        var colourInterior = this.molColour;
+        var rgbInt = RGBops.decompose_string( colourInterior );        
+        var colourExterior = RGBops.compose_array( RGBops.combine( rgbInt, [0,0,0], 0.5 ) );
+
+        
+        canvas.width  = dim[0] = Math.ceil( 2.0 * ( dim[0] + lineWidth) );
+        canvas.height = dim[1] = Math.ceil( 2.0 * ( dim[1] + lineWidth) );
+        
+        // Create gradient
+        const n = this.numAtoms;        
+        for ( let i = 0; i < n; i++ ) {           
+            const xCent = this.atomOffsets[i].vec[0] * scale;
+            const yCent = this.atomOffsets[i].vec[1] * scale;
+            const r  = this.atomRadii[i] * scale ;
+            const rI = 0.5 * r;
+
+            ctx.translate( dim[0]/2, dim[1]/2 );            
+            ctx.beginPath();
+            // Use shading to make the circles pop a little more.
+            const colourGradient = ctx.createRadialGradient( xCent, yCent, rI, xCent, yCent, r );
+            if ( type == "atom" ) {
+                colourInterior = this.atomColours[i];
+                rgbInt = RGBops.decompose_string( colourInterior );        
+                colourExterior = RGBops.compose_array( RGBops.combine( rgbInt, [0,0,0], 0.4 ) );
+            }
+            colourGradient.addColorStop(0, colourInterior);
+            colourGradient.addColorStop(1, colourExterior);
+            ctx.fillStyle = colourGradient;       
+            ctx.lineWidth   = lineWidth;
+            ctx.strokeStyle = colourEdge;
+            
+            // Draw circle
+            ctx.arc( xCent, yCent, r, 0, 2 * Math.PI );
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.resetTransform();
+        }
+        // Export image for future use.
+        //const imageData = ctx.getImageData(0, 0, d, d);        
+        const image = new Image( dim[0], dim[1] );
+        image.src = canvas.toDataURL('img/png');        
+        const offset = [ -dim[0]/2, -dim[1]/2 ];
+        
+        ctx.clearRect( 0, 0, dim[0], dim[1] );
+        return { image, offset };
+    }
+
+    //This one is needed to update the molecule images.
+    set_molecule_colour( str ) {
+        this.molColour = str;
+        this.create_images();
+    }
+        
+    // Draw this molecule type on a canvas.
+    // Need image and imageOffsets
+    // WIP.
+    draw( ctx, x, y, th ) {        
+        const img = this.imageNow;
+        ctx.translate( x, y );
+        ctx.rotate( th );
+        ctx.drawImage( img.image, img.offset[0], img.offset[1] );
+        ctx.resetTransform();
+        //ctx.drawImage( img.image, x+img.offset[0], y+img.offset[1] );
+    }
+    
+    set_current_image( type, distScale ) {
+        this.imageNow = this.get_image_object( type, distScale );
+    }
+    
+    //Need to then use .image and .offset for canvas drawing.
+    get_image_object( type, distScale ) {
+        if ( undefined === type ) { type = "atom"; }
+        if ( undefined === distScale ) { distScale = '20'; }
+        return this.imageSet[type][distScale];
+    }
 }
 
 /*
     This class handles the properties that are unique to each molecule:
-    - Position, velocity, rotation, colours, etc.
+    - Position, velocity, rotation, if there are special colours, etc.
     
-    This class will also handle reactions that create and destroy individual molecules.
 */
 // This is the base class. Assume polyatomic with all 3 degrees of freedom.
 class Molecule {
@@ -273,13 +467,17 @@ class Molecule {
         this.rotI   = moltype.rotI;
         this.size   = moltype.size;
         this.colour = moltype.molColour;
-        
+
         // References to atomic properties.
-        this.nAtoms      = moltype.n;
-        this.nDegrees    = moltype.nDegrees;
-        this.atomOffsets = moltype.offsets;
-        this.atomColours = moltype.colours;
-        this.atomRadii   = moltype.radii;
+        this.nAtoms      = moltype.numAtoms;
+        this.numDegrees    = moltype.numDegrees;
+        this.atomOffsets = moltype.atomOffsets;
+        this.atomColours = moltype.atomColours;
+        this.atomRadii   = moltype.atomRadii;
+        
+        // Get direct reference to moltypes and elements in case this is needed later.
+        this.moltype  = moltype;
+        this.elements = moltype.elements;
     }
     
     // Various shorthands for retrieval.
@@ -323,45 +521,50 @@ class Molecule {
         this.om = mol.om;
     }
     
-    // Draw each atom according to its offset and rotation. Most expensive part of the whole operation.
-    // Suspect the arc and fill are the most expensive in total.
-    draw( ctxLoc, style ) {
-        switch ( style ) {
-            case 'atom':
-                for (let i = 0; i < this.nAtoms; i++) {
-                    const off = Vector2D.rotate( this.atomOffsets[i], this.th );
-                    const xPos = (this.p.vec[0] + off.vec[0])/globalVars.distScale ;
-                    const yPos = (this.p.vec[1] + off.vec[1])/globalVars.distScale ;
-                    const radius = this.atomRadii[i]/globalVars.distScale;                    
-                    ctxLoc.beginPath();
-                    ctxLoc.fillStyle = this.atomColours[i];
-                    ctxLoc.arc( xPos, yPos, radius, 0, 2 * Math.PI );
-                    ctxLoc.fill();
-                    ctxLoc.lineWidth = 1;
-                    ctxLoc.strokeStyle = '#221100';
-                    ctxLoc.stroke();
-                }
-                break;
-            case 'molecule':
-                //Get better performance by using a single path that is closed by the fill command.
-                ctxLoc.beginPath();                
-                ctxLoc.fillStyle = this.colour;
-                ctxLoc.lineWidth = 1;
-                ctxLoc.strokeStyle = '#221100';
-                for (let i = 0; i < this.nAtoms; i++) {
-                    const off = Vector2D.rotate( this.atomOffsets[i], this.th );                    
-                    const xPos = (this.p.vec[0] + off.vec[0])/globalVars.distScale ;
-                    const yPos = (this.p.vec[1] + off.vec[1])/globalVars.distScale ;
-                    const radius = this.atomRadii[i]/globalVars.distScale;
-                    ctxLoc.moveTo( xPos + radius, yPos );
-                    ctxLoc.arc( xPos, yPos, radius, 0, 2 * Math.PI );
-                }
-                ctxLoc.stroke();
-                ctxLoc.fill();
-                break;
-            default:
-                throw `Unknown drawing scheme in given: ${style}!`;
+    /*
+        Draw each atom according to its offset and rotation.
+        Using fill and strokes appear to be much more expensive than using pre-rendered images to put on the canvas.
+        The only difference between molecule-image and atom-image is the colour of the atoms,
+        - each moltype stores the images of its atoms as coloured.
+    */
+    draw( ctxLoc, distScale ) {
+        if ( undefined === distScale ) { distScale = globalVars.distScale; }
+        this.moltype.draw( ctxLoc, this.p.vec[0]/distScale, this.p.vec[1]/distScale, this.th );
+    }
+    
+    draw_as_atom_circles( ctxLoc, distScale ) {
+        if ( undefined === distScale ) { distScale = globalVars.distScale; }
+        for (let i = 0; i < this.nAtoms; i++) {
+            const off = Vector2D.rotate( this.atomOffsets[i], this.th );
+            const xPos = (this.p.vec[0] + off.vec[0])/distScale ;
+            const yPos = (this.p.vec[1] + off.vec[1])/distScale ;
+            const radius = this.atomRadii[i]/distScale;                    
+            ctxLoc.beginPath();
+            ctxLoc.fillStyle = this.atomColours[i];
+            ctxLoc.arc( xPos, yPos, radius, 0, 2 * Math.PI );
+            ctxLoc.fill();
+            ctxLoc.lineWidth = 1;
+            ctxLoc.strokeStyle = '#221100';
+            ctxLoc.stroke();
+        }        
+    }
+
+    draw_as_one_molecule( ctxLoc, distScale ) {
+        if ( undefined === distScale ) { distScale = globalVars.distScale; }
+        ctxLoc.beginPath();                
+        ctxLoc.fillStyle = this.colour;
+        ctxLoc.lineWidth = 1;
+        ctxLoc.strokeStyle = '#221100';
+        for (let i = 0; i < this.nAtoms; i++) {
+            const off = Vector2D.rotate( this.atomOffsets[i], this.th );                    
+            const xPos = (this.p.vec[0] + off.vec[0])/distScale ;
+            const yPos = (this.p.vec[1] + off.vec[1])/distScale ;
+            const radius = this.atomRadii[i]/distScale;
+            ctxLoc.moveTo( xPos + radius, yPos );
+            ctxLoc.arc( xPos, yPos, radius, 0, 2 * Math.PI );
         }
+        ctxLoc.stroke();
+        ctxLoc.fill();
     }
 
     //Dynamics functions.

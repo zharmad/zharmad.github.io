@@ -31,7 +31,7 @@ globalVars.bHeatExchange = true;
 // Determines the scaling between the simulation and the default pixel size.
 // Defaults to 1 pixel = 10 pm = 0.1 Angs.
 globalVars.distScale     = 10;
-globalVars.distScaleParams = { min: 10, max: 60, step: 5 }
+globalVars.distScaleParams = { min: 10, max: 60, step: 10 }
 
 globalVars.zoomScale      =  10; //This is updated on load according to window size.
 
@@ -58,6 +58,7 @@ globalVars.bPresetsOverwriteParams = true; //Prevent the initial loading from ov
 globalVars.initialOpenTab='presets';
 
 // Molecular colouring section. Superceded by Drawing style.
+globalVars.molDrawStyle = 'molecule';
 //globalVars.moleculeColourScheme = "molecule"; //Choices: 'atom' or 'molecule'
 
 // Summons a map instance. Use map.get(X) as syntax.
@@ -113,7 +114,7 @@ temp.componentRatios = [ 16, 8, 4, 2, 1 ];
     Note: one molecule of ideal gas occupies 11.9 nm^2  at SATP, or 41.2 nm^3 in 3D.
 */
 temp = globalVars.presets[ "atmosphere" ] = {};
-temp.distScale =  80;
+temp.distScale =  60;
 temp.timeDelta = 100;
 temp.worldTemperature = 300;
 temp.bDoHeatExchange = true;

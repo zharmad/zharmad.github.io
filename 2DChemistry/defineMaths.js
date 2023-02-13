@@ -87,6 +87,56 @@ function randomRGB() {
     return `rgb(${random(0, 255)},${random(0, 255)},${random(0, 255)})`;
 }
 
+//Just an empty container for static functions.
+class RGBops {
+    
+    constructor() {}
+    
+    // Part of https://stackoverflow.com/questions/34980574/how-to-extract-color-values-from-rgb-string-in-javascript 
+    // Without support for named strings.
+    static decompose_string( str ) {
+        var r, g, b;
+        if ( str[0] === '#' ) {
+            if (str.length < 7) {
+                // convert #RGB and #RGBA to #RRGGBB and #RRGGBBAA
+                str = '#' + str[1] + str[1] + str[2] + str[2] + str[3] + str[3] + (str.length > 4 ? str[4] + str[4] : '');
+            }
+            return [
+                parseInt(str.substr(1, 2), 16),
+                parseInt(str.substr(3, 2), 16),
+                parseInt(str.substr(5, 2), 16),
+                str.length > 7 ? parseInt(str.substr(7, 2), 16)/255 : 1];
+        }
+        if ( str.indexOf('rgb') === 0 ) {
+            // convert 'rgb(R,G,B)' to 'rgb(R,G,B)A' which looks awful but will pass the regxep below        
+            if ( str.indexOf('rgba') === -1 ) { str += ',1'; } 
+            return str.match(/[\.\d]+/g).map( function (a) {
+                return +a
+            });
+        }
+        return undefined;
+    }
+
+    static compose_array( arr ) {
+        if ( arr.length === 3 ) { return `rgb(${arr[0]},${arr[1]},${arr[2]})`; }
+        return `rgba(${arr[0]},${arr[1]},${arr[2]},${arr[3]})`;
+    }
+    
+    static combine( arr1, arr2, ratio ) {
+        if ( undefined === ratio ) { ratio = 0.5; }
+        const ret = [
+            Math.floor( ratio * arr1[0] + ( 1.0 - ratio ) * arr2[0] ),
+            Math.floor( ratio * arr1[1] + ( 1.0 - ratio ) * arr2[1] ),
+            Math.floor( ratio * arr1[2] + ( 1.0 - ratio ) * arr2[2] ), 
+        ]
+        if ( arr1.length === 4 && arr2.length === 4 ) {
+            ret.push( Math.floor( ratio * arr1[3] + ( 1.0 - ratio ) * arr2[3] ) );
+        } 
+        return ret;
+    }
+}
+// Array functions
+
 function array_average( v ) {
     const n = v.length;
     let tot = 0.0;

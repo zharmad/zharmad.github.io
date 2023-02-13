@@ -38,13 +38,15 @@ const textFieldDistScale = document.getElementById("textFieldDistScale");
 const textFieldSimArea   = document.getElementById("textFieldSimArea");
 update_slider_values( sliderDistScale, { value: globalVars.distScale, params: globalVars.distScaleParams });
 textFieldDistScale.innerHTML = sliderDistScale.value;
-sliderDistScale.oninput = function() {
+sliderDistScale.onmouseup = function() {
     globalVars.distScale       = this.value;
     textFieldDistScale.innerHTML = this.value;
     const area = globalVars.worldWidth * globalVars.worldHeight * globalVars.distScale**2.0  * 1e-6;
     textFieldSimArea.innerHTML = area.toFixed(0);
     const numEst = globalVars.densMolecules * area ;
     textFieldNumMolecules.innerHTML = numEst.toFixed(0);
+    
+    sim.set_world_length_scale( this.value );
 } 
 
 const sliderDensMolecules    = document.getElementById("sliderDensMolecules");
@@ -127,7 +129,28 @@ toggleUpdateSimWindow.oninput = function () {
 
 const buttonMoleculeDrawStyle = document.getElementById("buttonMoleculeDrawStyle");
 function update_molecule_draw_style( style ) {
-    sim.set_draw_style( 'molecule', style );
+    switch( style ) {
+        case "molecule-fast":
+            globalVars.molDrawStyle = 'molecule';
+            sim.set_molecule_draw_style( 'molecule' );
+            sim.set_molecule_draw_speed( 'fast' );
+            break;
+        case "molecule-slow":
+            globalVars.molDrawStyle = 'molecule';
+            sim.set_molecule_draw_style( 'molecule' );
+            sim.set_molecule_draw_speed( 'slow' );
+            break;
+        case "atom-fast":
+            globalVars.molDrawStyle = 'atom';
+            sim.set_molecule_draw_style( 'atom' );
+            sim.set_molecule_draw_speed( 'fast' );
+            break;
+        case "atom-slow":
+            globalVars.molDrawStyle = 'atom';
+            sim.set_molecule_draw_style( 'atom' );
+            sim.set_molecule_draw_speed( 'slow' );
+            break;
+    }
     buttonMoleculeDrawStyle.innerHTML = style;
 }
 /*
@@ -269,21 +292,28 @@ const canvasReactionDiagram = document.getElementById("canvasReactionDiagramGrap
 const chartReactionDiagram = new Chart( canvasReactionDiagram, {
     type: 'line',
     data: {
-        labels: [ "", "Reactants", "Barrier", "Products", "" ],
+        labels: [ "", "Reactants", "", "Barrier", "", "Products", "" ],
         datasets: [{
             tension: 0.4,
             fillColor: 'white',
             fill: false,
             borderColor: 'black',
-            data: [ 0, 0, 0, 0, 0 ],
-        }], 
+            data: [ 0, 0, 0, 0, 0, 0, 0 ],
+            pointStyle: false,
+            radius: 20,
+        },
+        // The potential reactants and products.
+        { fill: false, showLine: false, data: [], pointStyle: false },
+        { fill: false, showLine: false, data: [], pointStyle: false },
+        { fill: false, showLine: false, data: [], pointStyle: false },
+        { fill: false, showLine: false, data: [], pointStyle: false },
+        ],
     }
 });
-chartReactionDiagram.options.elements.point.pointStyle = false;
-chartReactionDiagram.options.elements.point.radius = 20;
 chartReactionDiagram.options.plugins.legend.display = false;
 chartReactionDiagram.options.animation.duration = 600;
 chartReactionDiagram.options.aspectRatio = 2;
+chartReactionDiagram.options.scales.x.ticks.align = 'center';
 chartReactionDiagram.options.scales.y.title.display=true;
 chartReactionDiagram.options.scales.y.title.text = "Energy (kJ mol⁻¹)";
 
@@ -293,6 +323,9 @@ let bRun = false;
 /* Initial setup of simulations for plug and play. */
 molLib = new MoleculeLibrary();
 molLib.add_all_known_molecule_types();
+molLib.tableOfElements.create_all_images( 1.0/20.0 );        
+molLib.create_all_images();
+
 sim = new Simulation();
 sim.set_molecule_library( molLib );
 sim.setup_graphical_context(ctxSim, globalVars.refreshAlpha); // In Pixels.
@@ -309,7 +342,7 @@ sim.chartBarGr = chartBarGr;
 sim.link_current_stats_text_fields({
     numMolecules: document.getElementById("textFieldCurrentNumMolecules"),
     temperature: document.getElementById("textFieldCurrentTemperature"),
-    volume: document.getElementById("textFieldCurrentVolume"),
+    area: document.getElementById("textFieldCurrentArea"),
     //pressure: document.getElementById("textFieldCurrentPressure"),
 })
 
@@ -369,6 +402,7 @@ function start_simulation(){
             sim.set_target_number_of_molecules(sliderNumMol.value);        
             regenerate_simulation();
         }
+        sim.reset_lap_timer();
         loop();
     }
 }
@@ -590,7 +624,7 @@ function overwrite_global_values( strType ) {
     const p = globalVars.presets[strType];    
     
     sliderDistScale.value = p.distScale;
-    sliderDistScale.oninput();        
+    sliderDistScale.onmouseup();        
     // sliderNumMolecules.value = p.numMolecules;
     // sliderNumMolecules.oninput();
     sliderDensMolecules.value = p.densMolecules;
@@ -736,40 +770,69 @@ function sync_reaction_gui( obj ) {
     let divContent = "";
     var ER, EA, EP = 0.0;
     let bFirst = true;
-    for ( const r of obj.reactions) {
+    const nReactions = obj.reactions.length ;
+    for (let i = 0; i < nReactions; i++ ) {
+        const r = obj.reactions[i];
         const DeltaH      = r.DeltaH;
         const EActivation = r.EActivation;
         const name = r.get_reaction_name();
         
         if ( arrLoaded.indexOf( name ) == -1 ) {
-            if ( DeltaH < 0 ) {
-                ER = -DeltaH ; EA = EActivation - DeltaH ; EP = 0.0; 
-            } else {
-                ER = 0.0; EA = EActivation ; EP = DeltaH; 
-            }
             // <a onclick="update_reaction_diagram()">None</a>            
-            divContent += `<a onclick="update_reaction_diagram('${name}',${ER},${EA},${EP})">${name}</a>\n`;            
+            divContent += `<a onclick="update_reaction_diagram( '${name}', ${i} )">${name}</a>\n`;            
             arrLoaded.push(name);
         }
         
         if ( bFirst ) {
             bFirst = false;
             buttonReactionDragramContents.innerHTML = name;
-            update_reaction_diagram( name, ER, EA, EP );
+            update_reaction_diagram( name, i );
         }
     }
     if ( !bFirst ) {
         divReactionDragramOptions.innerHTML = divContent;
     } else {
         divReactionDragramOptions.innerHTML = 'none';
-        update_reaction_diagram( 'none', 0, 0, 0 );
+        update_reaction_diagram( 'none', 0 );
     }
         
 }
 
-function update_reaction_diagram( str, ER, EA, EP ) {
-    buttonReactionDragramContents.innerHTML = str;
-    chartReactionDiagram.data.datasets[0].data = [ ER, ER, EA, EP, EP ];
+function update_reaction_diagram( str, i ) {
+    if ( 'none' === str ) { return; }
+    
+    buttonReactionDragramContents.innerHTML = str;    
+    
+    const r = sim.gasReactions.reactions[i];
+    var ER, EA, EP = 0.0;
+    if ( r.DeltaH < 0 ) {
+        ER = -r.DeltaH ; EA = r.EActivation - r.DeltaH ; EP = 0.0; 
+    } else {
+        ER = 0.0; EA = r.EActivation ; EP = r.DeltaH; 
+    }    
+    // Line graph for the energy surface
+    chartReactionDiagram.data.datasets[0].data = [ ER, ER, ER, EA, EP, EP, EP ];
+    
+    // Images showing the molecule participants.
+    for ( let j = 1; j < 5; j++ ) {        
+        chartReactionDiagram.data.datasets[ j ].pointStyle = false;
+        chartReactionDiagram.data.datasets[ j ].data = [ undefined, undefined, undefined, undefined, undefined, undefined, undefined ];
+    }
+    
+    for ( let j = 0; j < r.reactantNames.length; j++ ) {
+        let imgSrc = molLib.get_entry( r.reactantNames[j] ).imageSet[ globalVars.molDrawStyle ][ '20' ].image;
+        chartReactionDiagram.data.datasets[ 1 + j ].pointStyle = imgSrc;
+        chartReactionDiagram.data.datasets[ 1 + j ].data[ 1 + j ] = ER + EA * 0.2 ;
+    }    
+    for ( let j = 0; j < r.productNames.length; j++ ) {
+        let imgSrc = molLib.get_entry( r.productNames[j] ).imageSet[ globalVars.molDrawStyle ][ '20' ].image;
+        chartReactionDiagram.data.datasets[ 3 + j ].pointStyle = imgSrc;
+        chartReactionDiagram.data.datasets[ 3 + j ].data[ 4 + j ] = EP + EA * 0.2 ;
+    }
+    
+    // Images of respective reactants and products.
+    //chartReactionDiagram.data.datasets[1].data;
+    //chartReactionDiagram.data.datasets[0].data = [ ER, ER, EA, EP, EP ];
     chartReactionDiagram.update();
 }
 
@@ -797,9 +860,6 @@ if ( controlsSidebar.widthOpen > 10 ) {
 } else {
     controlsSidebar.bOpen = false;
 }
-
-/* Webassembly import section */
-let collision_check_wasm = null;
 
 // const importObject = { imports: { imported_func: (arg) => console.log(arg) } };
 // WebAssembly.instantiateStreaming(fetch("distCheck.wasm"), importObject).then(
