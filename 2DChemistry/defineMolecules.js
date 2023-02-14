@@ -195,19 +195,47 @@ class MoleculeLibrary {
     }
 
     // Make atom-coloured and molecule-coloured image libraries for visualisation.
-    create_all_images() {
+    create_all_image_sets() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');        
         Object.values( this.entries ).forEach( moltype => {
-            moltype.create_images( canvas, ctx );
+            moltype.create_image_set( { canvas, ctx });
         });
         canvas.remove();
     }
-    
-    set_current_image( type, distScale ) {
+
+    set_current_image_all( type, distScale ) {
         Object.values( this.entries ).forEach( moltype => {
-            moltype.set_current_image( type, distScale );
+            if ( undefined != moltype.imageSet ) {
+                moltype.set_current_image( type, distScale );
+            }
         });
+    }
+    
+    create_image_set_from_array( moltypeNames ) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        for ( const name of moltypeNames ) {
+            const moltype = this.get_entry( name );
+            moltype.create_image_set( { canvas, ctx } );
+        }
+        canvas.remove();        
+    }
+    
+    set_current_image_from_array( moltypeNames, type, distScale ) {
+        for ( const name of moltypeNames ) {
+            const moltype = this.get_entry( name );
+            moltype.set_current_image( type, distScale );
+        }
+    }
+    
+    checkif_image_created( moltypeNames ) {
+        for ( const name of moltypeNames ) {
+            const moltype = this.get_entry( name );
+            if ( undefined === moltype.imageNow ) { return false; }
+            if ( undefined === moltype.imageNow.image ) { return false; }
+        }                
+        return true;
     }
 }
 
@@ -235,6 +263,7 @@ class MoleculeType {
         this.convert_offsets( args.offsets );
         
         this.size = 0.0;
+        this.area = undefined;
         this.mass = 0.0;
         this.rotI = 0.0;
         
@@ -298,12 +327,21 @@ class MoleculeType {
     
     /*
         Pre-create all images for use later. Uses globalVars.as the basis
+        Fairly slow on some devices if the HTML canvas needs to be created.
     */
-    create_images( canvas, ctx ) {
-        const bInternalCanvas = ( undefined === canvas );
+    create_image_set( args ) {
+        
+        const bForce = ( undefined != args.Force && args.Force );
+        if ( undefined != this.imageSet && !bForce ) { return; }
+        
+        var canvas, ctx;
+        const bInternalCanvas = ( undefined === args.canvas );
         if ( bInternalCanvas ) {
             canvas = document.createElement('canvas');
             ctx = canvas.getContext('2d');
+        } else {
+            canvas = args.canvas;
+            ctx = args.ctx;
         }
         
         this.imageSet = {};
@@ -399,8 +437,10 @@ class MoleculeType {
 
     //This one is needed to update the molecule images.
     set_molecule_colour( str ) {
-        this.molColour = str;
-        this.create_images();
+        if ( str != this.molColour ) {
+            this.molColour = str;
+            this.create_image_set( { bForce: true } );
+        }
     }
         
     // Draw this molecule type on a canvas.
@@ -412,11 +452,13 @@ class MoleculeType {
         ctx.rotate( th );
         ctx.drawImage( img.image, img.offset[0], img.offset[1] );
         ctx.resetTransform();
-        //ctx.drawImage( img.image, x+img.offset[0], y+img.offset[1] );
     }
     
     set_current_image( type, distScale ) {
         this.imageNow = this.get_image_object( type, distScale );
+        if ( undefined === this.imageNow ) {
+            throw `ERROR: The molecule type ${this.name} does not have a pre-determined image of type ${type}:${distScale}!`;
+        }
     }
     
     //Need to then use .image and .offset for canvas drawing.
@@ -459,6 +501,25 @@ class Molecule {
         }
     }
     
+    static measure_distance( mA, mB ) { return Vector2D.dist( mA.p, mB.p ); }
+    static check_proximity( mA, mB ) {
+        const d2 = Vector2D.dist2( mA.p, mB.p );
+        return ( d2 < (mA.size + mB.size)**2.0 );
+    }
+    static fix_potential_overlap( mA, mB ) {    
+        const d = Vector2D.dist( mA.p, mB.p );
+        const s = mA.size + mB.size;
+        if ( d < s ) {
+            const dp = mB.p.subtract(mA.p);
+            dp.scale( 0.55*(s-d)/d );
+            mB.p.incr ( dp );
+            mA.p.sincr ( -1, dp );
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
     // Reference the matching molecular properties from the Library.
     sync_molecular_properties(moltype) {
         if ( undefined === moltype )  { throw "ERROR: sync_molecular_properties is not given an molecule type!"; }
@@ -485,7 +546,8 @@ class Molecule {
     get_mass() { return this.mass; }
     get_rotI() { return this.rotI; }
     get_colour() { return this.colour; }
-   
+    measure_area() { return Math.PI * this.size * this.size; }
+        
     //Report in kJ/mol rather than kg.m^2/s^2 
     measure_kinetic_energy() { return 0.5 * this.mass * this.v.norm2(); }
     measure_rotational_energy() { return 0.5 * this.rotI * this.om**2.0; }

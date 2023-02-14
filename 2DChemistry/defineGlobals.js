@@ -31,7 +31,7 @@ globalVars.bHeatExchange = true;
 // Determines the scaling between the simulation and the default pixel size.
 // Defaults to 1 pixel = 10 pm = 0.1 Angs.
 globalVars.distScale     = 10;
-globalVars.distScaleParams = { min: 10, max: 60, step: 10 }
+globalVars.distScaleParams = { min: 10, max: 80, step: 10 }
 
 globalVars.zoomScale      =  10; //This is updated on load according to window size.
 

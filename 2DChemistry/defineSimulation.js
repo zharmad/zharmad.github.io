@@ -5,16 +5,17 @@ class Simulation {
         this.nMolecules = 0;
         this.molecules = [];
         this.moletypeNames   = []; // This one is an array to keep track of order.
-        this.moletypeCounts  = []; // All are arrays to make it easy to syn up with chart.js
+        this.moletypeCounts  = []; // All are arrays to make it easy to sync up with chart.js
         this.moletypeColours = [];
         this.numDegrees = 0;
         this.nMoleculesTarget = 0;
-        this.nTrialsPosition = 10; //Attempt this many trials when placing molecules before resorting to other means.
         
         //Objects to be initialised.
         this.moleculeLibrary = undefined;
         this.gasComp = undefined;
         this.gasReactions = undefined;
+        
+        this.moduleDomainDecomposition = undefined;
         
         //Simulation parameters. dt converts discrete timesteps into actual time in femtoseconds.
         this.timestep    = 0;
@@ -107,7 +108,7 @@ class Simulation {
 
     set_world_length_scale( x ) {
         this.distScale = x ;
-        if( this.bSet ) { this.moleculeLibrary.set_current_image( this.molDrawStyle, this.distScale ); }
+        if( this.bSet ) { this.moleculeLibrary.set_current_image_all( this.molDrawStyle, this.distScale ); }
     }
     get_world_length_scale() { return this.distScale; }
     set_world_time_factor( x ) { this.timeFactor = x ; }
@@ -119,7 +120,7 @@ class Simulation {
     
     set_molecule_draw_style( val ) {
         this.molDrawStyle = val;
-        if( this.bSet ) { this.moleculeLibrary.set_current_image( this.molDrawStyle, this.distScale ); }
+        if( this.bSet ) { this.moleculeLibrary.set_current_image_all( this.molDrawStyle, this.distScale ); }
     }
     
     set_molecule_draw_speed( val ) { this.molDrawSpeed = val; }    
@@ -177,23 +178,6 @@ class Simulation {
         return random_2DUniform( this.xBounds.x + margin, this.xBounds.y - margin, this.yBounds.x + margin, this.yBounds.y - margin);
     }
     
-    find_open_position( size ) {
-        const nTrials = this.nTrialsPosition, nMols = this.nMolecules;
-        let pTest = undefined, bCollide = false;
-        for ( let i = 0; i < nTrials; i++ ) { 
-            pTest = this.get_random_position( size );
-            bCollide = false;
-            for ( let j = 0; j < nMols; j++ ) {
-                let pMol = this.molecules[j].p, sMol = this.molecules[j].size;
-                var sepSq = (pMol[0]-pTest[0])*(pMol[0]-pTest[0]) + (pMol[1]-pTest[1])*(pMol[1]-pTest[1]);
-                if ( sepSq < (sMol+size)*(sMol+size) ) { bCollide = true; break; }
-            }
-            if ( !(bCollide) ) { return pTest; }
-        }
-        // Let the simulation sort it out later.
-        return pTest;
-        //throw `ERROR: Failed to find open space for a molecule with size ${size}. Simulation is probably too densely packed!`;
-    }
     // mass is defined in amu. velocity as pm per fs.
     // KE is thus measured as 1 kJ/mol = 1000 kg m^2 / ( s^2 mol) = 1 amu pm^2 / fs^2.
 
@@ -214,7 +198,8 @@ class Simulation {
         
         let pInit = undefined, mol = undefined;
         for ( let i = 0; i < n; i++ ) {
-            pInit = this.find_open_position( moltype.size );
+            pInit = this.get_random_position( moltype.size );
+            //this.find_open_position( moltype.size ); //No need. Will sort out afterwards.
             mol = this.moleculeLibrary.create_molecule( moltype, { bSample: true, T: this.temperature, p: pInit } );
             this.molecules.push( mol );
             this.nMolecules++; 
@@ -292,6 +277,9 @@ class Simulation {
                 throw `Simulation instance does not understand the type of Gas-composition: ${this.gasComp.type} !`;
         }
         
+        // Do one-round of initial correction.
+        this.shift_overlapping_molecules( 10 );
+        
         //Create and manage the data frames that stores time plots for the line graph.
         this.reset_data_frame();
         this.moletypeNames.forEach( name => {
@@ -321,7 +309,9 @@ class Simulation {
     }   
 
     // This is meant to be all-encompassing so that it should pass a self-check.
-    regenerate_simulation(args) {
+    async regenerate_simulation(args) {
+        
+        this.bSet = false;
         this.update_values_from_globals();
         //this.initialise_molecules_libraries(args);
         
@@ -330,17 +320,26 @@ class Simulation {
         this.gasComp.normalise();    
         
         this.build_simulation();
-
-
+        
         // Setup the individual element images
         //this.moleculeLibrary.tableOfElements.create_all_images( 1.0/this.distScale );        
         //this.moleculeLibrary.create_all_images();
-        this.moleculeLibrary.set_current_image( this.molDrawStyle, this.distScale );
-
-        this.draw_background(1.0);        
-        this.draw_molecules();
-        //this.draw_all_new();
-        //this.draw();
+        let makeImagePromise = new Promise( function( resolve, reject ) {
+            sim.moleculeLibrary.create_image_set_from_array( sim.moletypeNames );        
+            sim.moleculeLibrary.set_current_image_from_array( sim.moletypeNames, sim.molDrawStyle, sim.distScale );
+            resolve();
+            reject();
+        });
+        
+        if ( undefined === this.moduleDomainDecomposition ) {
+            this.moduleDomainDecomposition = new DomainDecompositionHandler( this );
+        }
+        this.moduleDomainDecomposition.tune_parameters_for_simulation();
+        if ( this.nMolecules > 500 ) {
+            this.collisionDetectMethod = "DomainDecomposition";
+        } else {
+            this.collisionDetectMethod = "standard";
+        }        
         
         this.timestep    = 0;
         this.timeElapsed = 0.0;
@@ -351,6 +350,12 @@ class Simulation {
         this.update_all_graphs();
         
         this.run_self_check();
+        
+        // Make sure all molecule images have finished loading before making the first draw call.
+        await makeImagePromise;
+        this.draw_background(1.0);
+        this.draw_molecules_initial_wait();
+        //await makeDomainDecompPromise;
     }
 
     run_self_check() {
@@ -430,6 +435,20 @@ class Simulation {
         
         //Call the relevant function for molecule drawing.
         this.draw_molecules();
+    }
+
+    /*
+        There is some sort of race-condition problem with Firefox when the molecule image are being created on initial page load,
+        where the canvas.drawImage simply refuses to work.
+        Use molArcs as a work-around while we figure out if it can be fixed.
+    */
+    draw_molecules_initial_wait() {
+        var bReady = false;
+        while ( !bReady ) {
+            bReady = this.moleculeLibrary.checkif_image_created( this.moletypeNames );
+        }
+
+        this.draw_molecules_as_molArcs();
     }
     
     // Draw everything.
@@ -528,50 +547,88 @@ class Simulation {
         }        
     }
     
+    shift_overlapping_molecules( nMaxSteps ) {
+        const nMol = this.nMolecules;
+        let countPrev = undefined;
+        for ( let s = 0; s < nMaxSteps; s++ ) {
+            let count = 0;
+            for ( let i = 0; i < nMol-1; i++ ) {
+                for ( let j = i+1; j < nMol; j++ ) {
+                    count += Molecule.fix_potential_overlap( this.molecules[i], this.molecules[j] );                    
+                }
+            }
+            console.log( `Initial jitter to resolve collisions: step ${s} results in ${count} shifts.`);
+            if ( count < 0.05 * nMol ) {
+                console.log( "....overlap rate is now satisfactory." );
+                return;
+            }
+            if ( undefined === countPrev ) {
+                countPrev = count;
+                continue;
+            } else if ( count / countPrev > 0.9 ) {
+                    console.log( "....overlap rate is not improving significantly. Skipping rest." );
+                    return;
+            }
+            countPrev = count;
+        }
+        console.log( "....maximum steps have been reached." );
+    }
+    
     // This O(n^2) step takes the most time. 32 of 80 seconds on last check for ~2000 molecule system.
     // TODO: Try emscripten -> Webassembly this piece of code.
     detect_potential_collisions() {
                 
         const nMol = this.nMolecules;
-        const molPairs = [];
+        const molPairs = []; //Pairs of actual moleculee objects, rather than just their references.
         
-        // const time1 = Date.now();
-        // if ( WASM.bLoad ) {
-        if ( false ) {
-            //Get arrays and points to WASM memory locations.
-            this.set_WASM_memory_block();            
-
-            this.copy_position_info_to_memory( nMol, this.memWASM.xPos, this.memWASM.yPos, this.memWASM.sizes );
-        
-            // void detect_collisions(int n, float* x, float* y, float* r, int* nPairs, int* pairs) {
-            WASM.instance.exports.detect_collisions(
-                nMol, this.memWASM.xPos.byteOffset, this.memWASM.yPos.byteOffset, this.memWASM.sizes.byteOffset,
-                this.memWASM.nPairs.byteOffset, this.memWASM.arrPairs.byteOffset,
-            );
-            const nPairs   = this.memWASM.nPairs[0];
-            const arrPairs = this.memWASM.arrPairs;
-            if ( nPairs == 0 ) { return molPairs; }
-            for( let i = 0; i < 2 * nPairs; i += 2 ) {
-                molPairs.push( [ this.molecules[ arrPairs[i] ], this.molecules[ arrPairs[i+1] ] ] );
-            }            
-        // const time2 = Date.now();
-        // molPairs.length = 0;
-        // const time3 = Date.now();
-        } else {
-            var xPos = new Float32Array(nMol);
-            var yPos = new Float32Array(nMol);
-            var sizes = new Float32Array(nMol);
-
-            this.copy_position_info_to_memory( nMol, xPos, yPos, sizes );
-            
-            for (let i = 0; i < nMol-1; i++) {            
-                for (let j = i + 1; j < nMol; j++ ) {
-                    var sepSq = (xPos[j]-xPos[i])*(xPos[j]-xPos[i]) + (yPos[j]-yPos[i])*(yPos[j]-yPos[i]);
-                    if ( sepSq < (sizes[j]+sizes[i])*(sizes[j]+sizes[i]) ) {
-                        molPairs.push( [ this.molecules[i], this.molecules[j] ] );
-                    }
+        const str = this.collisionDetectMethod;
+        //const str = "standard";
+        switch ( str ) {
+            case "DomainDecomposition": 
+                const idPairs = this.moduleDomainDecomposition.detect_potential_collisions();
+                const nProx = idPairs.length;
+                //console.log(`Number of proximal pairs: ${nProx}`);
+                for ( let i = 0; i < nProx; i++ ) {
+                    molPairs.push([
+                        this.molecules[ idPairs[i][0] ],
+                        this.molecules[ idPairs[i][1] ],
+                    ]);
                 }
-            }        
+                //this.debug_validate_proximal_pairs( molPairs );
+                break;
+            case "WASM":
+                //Get arrays and points to WASM memory locations.
+                this.set_WASM_memory_block();            
+
+                this.copy_position_info_to_memory( nMol, this.memWASM.xPos, this.memWASM.yPos, this.memWASM.sizes );
+            
+                // void detect_collisions(int n, float* x, float* y, float* r, int* nPairs, int* pairs) {
+                WASM.instance.exports.detect_collisions(
+                    nMol, this.memWASM.xPos.byteOffset, this.memWASM.yPos.byteOffset, this.memWASM.sizes.byteOffset,
+                    this.memWASM.nPairs.byteOffset, this.memWASM.arrPairs.byteOffset,
+                );
+                const nPairs   = this.memWASM.nPairs[0];
+                const arrPairs = this.memWASM.arrPairs;
+                if ( nPairs == 0 ) { return molPairs; }
+                for( let i = 0; i < 2 * nPairs; i += 2 ) {
+                    molPairs.push( [ this.molecules[ arrPairs[i] ], this.molecules[ arrPairs[i+1] ] ] );
+                }
+                break;
+            case "standard":
+            default:
+                var xPos = new Float32Array(nMol);
+                var yPos = new Float32Array(nMol);
+                var sizes = new Float32Array(nMol);
+
+                this.copy_position_info_to_memory( nMol, xPos, yPos, sizes );                
+                for (let i = 0; i < nMol-1; i++) {            
+                    for (let j = i + 1; j < nMol; j++ ) {
+                        var sepSq = (xPos[j]-xPos[i])*(xPos[j]-xPos[i]) + (yPos[j]-yPos[i])*(yPos[j]-yPos[i]);
+                        if ( sepSq < (sizes[j]+sizes[i])*(sizes[j]+sizes[i]) ) {
+                            molPairs.push( [ this.molecules[i], this.molecules[j] ] );
+                        }
+                    }
+                }               
         }
         // const time4 = Date.now();        
         // console.log( time2-time1, time4-time3, (time4-time3)/(time2-time1) );
@@ -724,6 +781,23 @@ class Simulation {
         }
     }
 
+    debug_validate_proximal_pairs( molPairs ) {
+        const nPairs = molPairs.length;
+        for ( let i = 0; i < nPairs; i++ ) {
+            const mol1 = molPairs[i][0], mol2 = molPairs[i][1];
+            if ( undefined === mol1 || undefined === mol2 ) {
+                throw "ERROR: molecule pairs contain undefined entries!";
+            }
+            if ( mol1 === mol2 ) { throw "ERROR: collision pairs contains pairs that collide with themselves!"; } 
+            const bNear = Molecule.check_proximity( mol1, mol2 );
+            if ( ! bNear ) {
+                console.log( pair[0], pair[1], d );
+                throw "ERROR: collision pairs are not actually in proximity!";
+            }            
+        }
+        console.log("Proximal pairs validated to be indeed all proximal.");
+    }
+
     // TO-DO: switch to the rigid body collider with the wall.
     // const vel1PInit = vInit1 + scalar_cross( om, sep1P );
     // const w = (rotI != null ) ? sep1P.cross(vecN)**2.0/rotI : 0.0;
@@ -833,7 +907,8 @@ class Simulation {
             `Expected pressure from PA = nRT is ${pExpect}\n`,
             `Observed pressure from collisions is ${pMeasure}`,
         );
-    }    
+    }
+    
     /* */
     measure_total_energy() {
         let ETot = 0.0; 
@@ -883,6 +958,28 @@ class Simulation {
         let P = new Vector2D( 0, 0 );
         for ( const mol of this.molecules ) { P.sincr( mol.mass, mol.v); }
         return P;
+    }
+
+    //Other meesures that depend upon the molecule library.
+    measure_total_molecule_area() {
+        const n = this.moletypeNames.length;
+        const molLib = this.moleculeLibrary;
+        let sum = 0.0 ;
+        for ( let i = 0; i < n; i++ ) {
+            sum += molLib.get_entry( this.moletypeNames[i] ).area * this.moletypeCounts[i];
+        }
+        return sum;
+    }
+    
+    measure_max_molecule_size() {
+        const n = this.moletypeNames.length;
+        const molLib = this.moleculeLibrary;
+        let max = 0.0 ;
+        for ( let i = 0; i < n; i++ ) {
+            const s = molLib.get_entry( this.moletypeNames[i] ).size;
+            max = ( max < s ) ? s : max;
+        }
+        return max;
     }
 
     // Conduct an iso-kinetic energy redistribution of total momentums and energies.

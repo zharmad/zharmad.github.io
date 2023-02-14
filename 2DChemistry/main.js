@@ -20,6 +20,9 @@ const widthAll = window.innerWidth;
 const widthSim  = canvasSim.width  = containerSim.clientWidth-4;
 const heightSim = canvasSim.height = containerSim.clientHeight-4;
 
+//console.log( ctxSim );
+//ctxSim.clearRect( 0, 0, widthSim, heightSim );
+
 globalVars.worldWidth = canvasSim.width ;
 globalVars.worldHeight = canvasSim.height ;
 
@@ -47,7 +50,8 @@ sliderDistScale.onmouseup = function() {
     textFieldNumMolecules.innerHTML = numEst.toFixed(0);
     
     sim.set_world_length_scale( this.value );
-} 
+}
+sliderDistScale.ontouchend = function() { this.onmouseup(); }
 
 const sliderDensMolecules    = document.getElementById("sliderDensMolecules");
 const textFieldDensMolecules = document.getElementById("textFieldDensMolecules");
@@ -324,7 +328,7 @@ let bRun = false;
 molLib = new MoleculeLibrary();
 molLib.add_all_known_molecule_types();
 molLib.tableOfElements.create_all_images( 1.0/20.0 );        
-molLib.create_all_images();
+//molLib.create_all_image_sets();
 
 sim = new Simulation();
 sim.set_molecule_library( molLib );
@@ -418,7 +422,7 @@ function restart_simulation() {
     chartLineGr2.data.datasets.forEach((dataSet, i) => {
         arrHidden[i] = chartLineGr2.getDatasetMeta(i).hidden ;
     });
-    sim.regenerate_simulation();        
+    sim.regenerate_simulation().catch( err=> { throw err; });
     update_composition_GUI_from_gasComp();
     chartLineGr2.data.datasets.forEach((dataSet, i) => {
         chartLineGr2.getDatasetMeta(i).hidden = arrHidden[i];
@@ -428,7 +432,7 @@ function restart_simulation() {
 
 function regenerate_simulation(){
     bRun = false;    
-    sim.regenerate_simulation();        
+    sim.regenerate_simulation().catch( err=> { throw err; });
     update_composition_GUI_from_gasComp();
 }
 
@@ -658,8 +662,9 @@ function generate_preset_simulation( strType ) {
     
     const gr = get_new_preset_gas_reactions( {type: strType, moleculeLibrary: molLib} );
     sim.set_gas_reactions(gr);
-       
-    sim.regenerate_simulation();    
+    
+    sim.regenerate_simulation().catch( err=> { throw err; });    
+        
 
     // Additional setup - ranging from gui modifiation to module loading.
     sync_composition_gui( p );
