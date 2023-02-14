@@ -123,7 +123,7 @@ class DomainDecompositionHandler {
             dom = this.domains[`${dx}:${dy}`];
             // Ignore all molecules which are out of bounds, rather than throwing an error. They should be corrected by boundary collisions instead.
             if ( undefined === dom ) {
-                console.log( `WARNING: molecule ${mol.name} has exited domain decomposition area! (${dx}:${dy}) versus (${this.numX}:${this.numY}`);
+                //console.log( `WARNING: molecule ${mol.name} has exited domain decomposition area! (${dx}:${dy}) versus (${this.numX}:${this.numY}`);
                 continue;
             }
             dom.push_memory( pos[0], pos[1], mol.size, i );

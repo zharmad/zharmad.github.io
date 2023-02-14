@@ -301,7 +301,8 @@ class Simulation {
 
         //Initial setup of statistical data.
         this.update_statistics();
-        this.push_current_stats();
+        this.push_current_stats();        
+        this.push_data_frame_composition();
         
         //Synchronise and set up graph data.
         this.bSet = true;
@@ -736,7 +737,7 @@ class Simulation {
         let totalMomentumTransfer = 0.0;
         for (const mol of this.molecules) {
             //Shift molecules            
-            totalMomentumTransfer += this.process_wallBounce(mol);            
+            totalMomentumTransfer += this.process_wall_collisions(mol);            
         }
         
         //Zero all angular momentum to reduce ice cude phenomenon. This now breaks strict energy conservation of the system.
@@ -798,12 +799,12 @@ class Simulation {
         console.log("Proximal pairs validated to be indeed all proximal.");
     }
 
-    // TO-DO: switch to the rigid body collider with the wall.
+    // TO-DO: switch to the rigid body collide with the wall.
     // const vel1PInit = vInit1 + scalar_cross( om, sep1P );
     // const w = (rotI != null ) ? sep1P.cross(vecN)**2.0/rotI : 0.0;
     // const f = 1.0 / ( 1.0/mass + w ) ;
     // const impulse = f * vel1PInit.dot(vecN) * (1 + elasticity) ;
-    process_wallBounce(mol) {        
+    process_wall_collisions(mol) {        
         const xBounds = this.xBounds, yBounds = this.yBounds;
         const s = mol.size, p = mol.p, v = mol.v ;
         let bCollideX = false, bCollideY = false, bMovingWall = false;        
@@ -838,7 +839,7 @@ class Simulation {
             - 500 molecules in 303nm^2 box gives 300K.
         This confirms that the constant will have a small dependence on density, i.e. collision rate between molecules.
         */
-        if ( !bCollideY || !bCollideY ) { return 0.0 }
+        if ( !bCollideX && !bCollideY ) { return 0.0 }
         
         if ( this.bHeatExchange ) {
             // mol.resample_speed( this.temperature * 1.26 );
@@ -1115,16 +1116,19 @@ class Simulation {
         //this.dataFrame['temperature'].data.push( [ t, this.get_average_() ] );
         this.dataFrame['performance'].data.push( [ t, this.check_lap_timer() ] );
         
+        this.push_data_frame_composition();
+    }
+    
+    push_data_frame_composition() {
         // Molecule inventory
+        const t = this.timeElapsed;        
         const n = this.moletypeNames.length;       
         let name = undefined, count = undefined;
         for ( let i = 0; i < n; i++ ) {
             name  = this.moletypeNames[i];
             count = this.moletypeCounts[i];
             this.dataFrame[name].data.push( [ t, count ] );
-        }
-        
-
+        }       
     }
 
     get_data_frame_stat( k, tStart, tEnd ) {

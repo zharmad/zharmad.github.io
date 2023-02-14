@@ -101,8 +101,8 @@ globalVars.presets = {};
 // Noble Gas, i.e. hard spheres.
 var temp = globalVars.presets[ "noble gas" ] = {};
 temp.distScale = 20;
-temp.timeDelta = 20;
-temp.worldTemperature = 300;
+temp.timeDelta = 50;
+temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 124;
 temp.densMolecules = 0.45;
@@ -114,9 +114,9 @@ temp.componentRatios = [ 16, 8, 4, 2, 1 ];
     Note: one molecule of ideal gas occupies 11.9 nm^2  at SATP, or 41.2 nm^3 in 3D.
 */
 temp = globalVars.presets[ "atmosphere" ] = {};
-temp.distScale =  60;
+temp.distScale =  80;
 temp.timeDelta = 100;
-temp.worldTemperature = 300;
+temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.1;
@@ -154,7 +154,7 @@ temp.componentHidePlot = [ "H•", "I•" ];
 temp = globalVars.presets[ "ozone layer formation" ] = {};
 temp.distScale = 30;
 temp.timeDelta = 100;
-temp.worldTemperature = 300;
+temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.7;
