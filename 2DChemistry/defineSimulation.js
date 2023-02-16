@@ -33,8 +33,9 @@ class Simulation {
         
         this.xBounds = new Vector2D(0, 1);
         this.yBounds = new Vector2D(0, 1);
-        this.xMaxTarget = undefined;
-        this.xWallVelNominal  = 0.1; //The nominal scalar value of the wall velocity if the area needs changing.
+        this.xMaxTarget  = undefined;
+        this.xMaxInitial = undefined;
+        this.xWallVelNominal  = 0.01; //The nominal scalar value of the wall velocity if the area needs changing.
         this.xWallVel = 0; //The wall velocity seen by molecules when colliding with the shifting boundary.
                 
         //Graphical interface
@@ -143,8 +144,11 @@ class Simulation {
     set_world_boundaries( xMax, yMax ) {
         this.xBounds[1] = xMax * this.distScale;
         this.yBounds[1] = yMax * this.distScale;
-        this.xMaxTarget = this.xBounds[1];
+        this.xMaxTarget = this.xMaxInitial = this.xBounds[1];        
     }
+    set_world_area_percentage( p ) {
+        this.xMaxTarget = 0.01 * p * this.xMaxInitial;
+    }    
     
     update_values_from_globals() {
         this.set_world_time_factor( globalVars.timeFactor );
@@ -296,13 +300,6 @@ class Simulation {
             }
             this.create_data_frame_entry( name, name, colour );
         });        
-
-        // Create graphical icons for atoms for use in putImageData.
-
-        //Initial setup of statistical data.
-        this.update_statistics();
-        this.push_current_stats();        
-        this.push_data_frame_composition();
         
         //Synchronise and set up graph data.
         this.bSet = true;
@@ -313,9 +310,11 @@ class Simulation {
     async regenerate_simulation(args) {
         
         this.bSet = false;
-        this.update_values_from_globals();
-        //this.initialise_molecules_libraries(args);
+        this.timestep    = 0;
+        this.timeElapsed = 0.0;
         
+        this.update_values_from_globals();
+        //this.initialise_molecules_libraries(args);        
         
         // Make sure the gas composition is standardised.
         this.gasComp.normalise();    
@@ -342,9 +341,12 @@ class Simulation {
             this.collisionDetectMethod = "standard";
         }        
         
-        this.timestep    = 0;
-        this.timeElapsed = 0.0;
         //this.reset_line_graph();
+        
+        //Initial setup of statistical data.
+        this.update_statistics();
+        this.push_current_stats();        
+        this.push_data_frame_composition();
         
         //Graph inital velocities.
         this.sync_all_graphs();
@@ -721,13 +723,14 @@ class Simulation {
         // Shift wall boundaries if required.
         // NB: Le Chatelier's Principle and pressure effects are very difficult to discern within the normal bounds of the simulation.
         // I believe that the reason is this: the collision rate needs to change by ~an order of magnitude in order to have any noticeable shift in the equilibrium of gases. This means simulation times that are not really practical when trying to maintain adequate collision detection rates.
+        const wallVel = this.xWallVelNominal * this.distScale;
         if ( this.xMaxTarget > this.xBounds[1] ) {
-            this.xWallVel = this.xWallVelNominal ;
-            this.xBounds[1] += this.xWallVelNominal * this.dt;
+            this.xWallVel = wallVel ;
+            this.xBounds[1] += wallVel * this.dt;
             if ( this.xMaxTarget < this.xBounds[1] ) { this.xBounds[1] = this.xMaxTarget; } 
         } else if ( this.xMaxTarget < this.xBounds[1] ) {
-            this.xWallVel = -this.xWallVelNominal;
-            this.xBounds[1] -= this.xWallVelNominal * this.dt;
+            this.xWallVel = -wallVel;
+            this.xBounds[1] -= wallVel * this.dt;
             if ( this.xMaxTarget > this.xBounds[1] ) { this.xBounds[1] = this.xMaxTarget; }             
         } else {
             this.xWallVel = 0;
@@ -804,7 +807,8 @@ class Simulation {
     // const w = (rotI != null ) ? sep1P.cross(vecN)**2.0/rotI : 0.0;
     // const f = 1.0 / ( 1.0/mass + w ) ;
     // const impulse = f * vel1PInit.dot(vecN) * (1 + elasticity) ;
-    process_wall_collisions(mol) {        
+    process_wall_collisions(mol) {
+        const frac = 0.5; // Temporary placeholder for heat exchange efficiency.
         const xBounds = this.xBounds, yBounds = this.yBounds;
         const s = mol.size, p = mol.p, v = mol.v ;
         let bCollideX = false, bCollideY = false, bMovingWall = false;        
@@ -842,6 +846,7 @@ class Simulation {
         if ( !bCollideX && !bCollideY ) { return 0.0 }
         
         if ( this.bHeatExchange ) {
+            // TODO: Add heat exchagne coefficient via frac .
             // mol.resample_speed( this.temperature * 1.26 );
             // mol.resample_omega( this.temperature * 1.26 );
             mol.resample_speed( this.temperature * 1.38 );
@@ -1044,7 +1049,7 @@ class Simulation {
         this.dataFrame = {};
         this.create_data_frame_entry( 'temperature', 'temperature (K)', 'rgb(0,0,0)' );
         this.create_data_frame_entry( 'area', 'area (nm²)', 'rgb(255,128,0)' );
-        this.create_data_frame_entry( 'pressure', 'pressure (amu ps⁻²)', 'rgb(0,255,128)' );
+        this.create_data_frame_entry( 'pressure', 'pressure (amu pm ps⁻² pm⁻¹)', 'rgb(0,255,128)' );
         this.create_data_frame_entry( 'density', 'density (nm⁻²)', 'rgb(128,0,255)' );
         this.create_data_frame_entry( 'numMolecules', '# of molecules', 'rgb(128,128,128)' );
         this.create_data_frame_entry( 'performance', 'simulated-ps per RL-min', 'rgb(128,192,64)' );
@@ -1098,7 +1103,11 @@ class Simulation {
     push_current_stats() {
         for ( const [ k, v ] of Object.entries( this.stats ) ) {
             if ( k in this.objTextFields ) {
-                this.objTextFields[k].innerHTML = ( undefined != v[0] ) ? v[0].toFixed(0) : undefined;
+                if ( k === 'timeElapsed' ) {
+                    this.objTextFields[k].innerHTML = ( undefined != v[0] ) ? v[0].toFixed(3) : undefined;
+                } else {
+                    this.objTextFields[k].innerHTML = ( undefined != v[0] ) ? v[0].toFixed(0) : undefined;
+                }
             }
         };
     }

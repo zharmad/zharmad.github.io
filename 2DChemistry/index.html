@@ -54,23 +54,33 @@
             
             <hr width="50%" align="center" color="grey" size="2">
             
-            <h2>2DChemistry</h2>
+            <div class="divTextTitleBlock">
+                <span class="spanImageTitleBlock"><img id="imageInfoTitlePrefix" src="" alt="Image of a molecule"></img></span>
+                <span class="spanTextTitleBlock"><h2>&nbsp;2DChemistry&nbsp;</h2></span>
+                <span class="spanImageTitleBlock"><img id="imageInfoTitleSuffix" src="" alt="Image of a molecule"></img></span>
+            </div>
             
-            <p>This is a gas-phase toy model designed to help you understand chemical processes and reactions, in terms of what's going on at the atomic level.</p>
+            <p>This is toy-model of <a href="https://en.wikipedia.org/wiki/Gas">gas</a> molecules, designed to help you understand high-school level chemical processes and reactions in terms of what's going on <a href="https://en.wikipedia.org/wiki/Kinetic_theory_of_gases">at the atomic level</a>.</p>
             
-            <p>In this flattened universe, molecules behave like hard circles that obey Newtownian laws of motion. They collide with each other and with the wall boundaries, changing direction and rotational speed as needed to imitate their counterparts in our own reality.
+            <p>In this flattened universe, molecules obey simple laws of motion without electrostatics. They have mass and sizes equal to real-world counterparts, although they collide with each other and with the wall boundaries as-if they are <a href="https://en.wikipedia.org/wiki/Collision_response">rigid bodies</a>. 
+
+            <p>In addition, molecules can trigger chemical reactions that have been explicitly programmed. This enables you to investigate some common industrial and natural processes via the presets at the top of this panel. All energy barriers and transfers have been reduced to 10% of real-world values so that they can be immediately observed.</p>
             
-            <p>Whenever two reactant molecules collide in an acceptable orientation and with sufficient energy, its corresponding product molecules will then be formed. This is collision theory in a nutshell.</p>
+            <p>Whenever two reactant molecules collide in an acceptable orientation and with sufficient energy, its corresponding product molecules will then be formed. This is <a href="https://en.wikipedia.org/wiki/Collision_theory">collision theory</a> in a nutshell.</p>           
             
-            <p>In addition, unstable molecules may randomly decompose if it has sufficient rotational energy to do so.</p>
+            <p>As rigid bodies, these molecules have no internal motions; they cannot compress or extend to store elastic energy. Instead, <a href="https://en.wikipedia.org/wiki/Thermal_decomposition">thermal decomposition</a> is permitted only if molecules have sufficient rotational energy to overcome the activation barrier.</p>
             
-            <p>The above rules are all you need to obtain a conceptual understanding of various high school chemistry content.</p>
+            <p>On the other hand, the toy molecules will always behave like neutral gases. No molecules can become <a href="https://en.wikipedia.org/wiki/Lightning">charged</a>, regardless of the available energy. Molecules like H₂O cannot condense into water droplets or freeze, either.</p>
             
-            <hr width="50%" align="center" color="grey" size="2">
+            <p>These rules are all you need to tie together various chemistry and physics concepts commonly encountered before university.</p>
             
-            <p>Physical quantities from our universe have been copied over with one exception: the amount of energy required or transferred during reactions. These are divided by ten so that, within the tiny length and time scales of the toy model, it becomes feasible for you to observe chemical processes in one sitting.</p>
+            <hr width="50%" align="center" color="grey" size="2">           
             
-            <p>Thus, the standard units are:
+            <div class="divTextTitleBlock">               
+                <span class="spanTextTitleBlock"><h3>Notes</h3></span>
+            </div>
+            
+            <p>The standard units are:
             <ul>
                 <li>pico/nanometers,</li>
                 <li>femto/picoseconds,</li>
@@ -79,9 +89,19 @@
                 <li>atomic-mass-units, and</li>
                 <li>moles.</li>
             </ul>
-            If you wish to check values in this toy model against their equivalents in our world, please note that both the energy division and the compression from 3D to 2D will implact multiple measurements. These include the average <a href="https://en.wikipedia.org/wiki/Maxwell%E2%80%93Boltzmann_distribution">speed of gas molecules</a>, rates of reaction, <a href="https://en.wikipedia.org/wiki/Autoignition_temperature">autoignition temperature</a>, <emph>etc.</emph></p>
+            </p>
             
-            The simulation preset button at the top of this panel will get you started on a few different models.
+            <p>If you wish to check values in this toy model against their equivalents in our world, please note that both the energy division and the compression from 3D to 2D will implact most measurements:
+            <ul>
+                <li>The corresponding ideal gas constant in 2D is not 8.314 J K⁻¹ mol⁻¹. Adjustments are need to <a href="https://en.wikipedia.org/wiki/Ideal_gas_law#Energy_associated_with_a_gas">convert</a> the total energy of molecules to a temperature value;</li>
+                <li><a href="https://en.wikipedia.org/wiki/Autoignition_temperature">autoignition temperatures</a> are much lower;</li>
+                <li>rates of reaction are vastly accelerated;</li>
+                <li>the average <a href="https://en.wikipedia.org/wiki/Maxwell%E2%80%93Boltzmann_distribution">speed of gas molecules</a> is reduced;</li>
+                <li>and so on.</li>
+            </ul>
+            The ideal gas law still exists. After all, this law was originally devised using similar models in 19th-century, just without computers.
+            </p>
+            
         </div>
 
         <!-- Sidebar for simulation controls. -->
@@ -95,10 +115,21 @@
             <hr width="50%" align="center" color="grey" size="2">
             
             <p>
-            <strong>Current statistics</strong></br>
-            Molecules: <span id="textFieldCurrentNumMolecules"></span></br>
-            Temperature: <span id="textFieldCurrentTemperature"></span> K</br>
-            Area: <span id="textFieldCurrentArea"></span> nm²</br>
+            <strong>Current statistics</strong>
+            <table>
+                <tr>
+                    <th textalign="right">Time elapsed:</th> <td><span id="textFieldCurrentTimeElapsed"></span> ps<td>
+                </tr>            
+                <tr>
+                    <th textalign="right">Molecules:</th> <td><span id="textFieldCurrentNumMolecules"></span><td>
+                </tr>
+                <tr>
+                    <th textalign="right">Temperature:</th> <td><span id="textFieldCurrentTemperature"></span> K</td>
+                </tr>
+                <tr>
+                    <th textalign="right">Area:</th> <td><span id="textFieldCurrentArea"></span> nm²</td>
+                </tr>
+            </table>            
             <!-- Pressure: <span id="textFieldCurrentPressure"></span> amu ps⁻²</br> -->
             </p>
             
@@ -111,10 +142,14 @@
                 <li>
                     World Temperature: <span id="textFieldWorldTemperature"></span>
                     <input type="range" min="10" max="1000" value="300" step="10" class="slider" id="sliderWorldTemperature">
-                </li>                
+                </li>
                 <li>
                     <label class="switchToggle"><input type="checkbox" id="toggleDoHeatExchange"><span class="sliderToggle round"></span></label>
                     Do heat exchange with outside world when a molecule collides with simulation boundaries
+                </li>
+                <li>
+                    World Area: <span id="textFieldWorldAreaPercentage"></span>% of window.
+                    <input type="range" min="20" max="100" value="100" step="1" class="slider" id="sliderWorldAreaPercentage">
                 </li>
                 <li>
                     Sim speed: <span id="textFieldTimeDelta"></span> fs simulation time per step.

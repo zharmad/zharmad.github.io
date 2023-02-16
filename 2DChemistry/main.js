@@ -82,7 +82,17 @@ sliderWorldTemperature.oninput = function() {
     textFieldWorldTemperature.innerHTML = this.value;
     globalVars.temperature = this.value;
     sim.set_world_temperature( this.value );
-} 
+}
+
+const sliderWorldAreaPercentage = document.getElementById("sliderWorldAreaPercentage");
+const textFieldWorldAreaPercentage = document.getElementById("textFieldWorldAreaPercentage");
+update_slider_values( sliderWorldAreaPercentage, { value: globalVars.worldAreaPercentage, params: globalVars.worldAreaPercentageParams });
+textFieldWorldAreaPercentage.innerHTML = sliderWorldAreaPercentage.value;
+sliderWorldAreaPercentage.oninput = function() {
+    textFieldWorldAreaPercentage.innerHTML = this.value;
+    globalVars.worldAreaPercentage = this.value;
+    sim.set_world_area_percentage( this.value );
+}
 
 const toggleDoHeatExchange = document.getElementById("toggleDoHeatExchange");
 toggleDoHeatExchange.checked = globalVars.bHeatExchange;
@@ -129,6 +139,13 @@ toggleUpdateSimWindow.checked = true;
 toggleUpdateSimWindow.oninput = function () {
    //globalVars.bHeatExchange = toggleDoHeatExchange.checked;
     sim.set_bool_draw_molecules( toggleUpdateSimWindow.checked );
+    if ( toggleUpdateSimWindow.checked ) {
+        if ( !bRun ) {
+            sim.draw_molecules();
+        }
+    } else {
+        sim.draw_background(1.0);
+    }
 }
 
 const buttonMoleculeDrawStyle = document.getElementById("buttonMoleculeDrawStyle");
@@ -156,6 +173,7 @@ function update_molecule_draw_style( style ) {
             break;
     }
     buttonMoleculeDrawStyle.innerHTML = style;
+    if ( ! bRun ) { sim.draw_molecules(); }
 }
 /*
     Module dependent items.
@@ -197,7 +215,7 @@ for ( let i = 0; i < 6; i++ ) {
     
     // GUI changes in the analysis tab for dynamically showing components that can be plotted.
     /*
-    o.spanPlot   = document.getElementById(`spanPlotComponent${i}`);
+    o.imagePlot   = document.getElementById(`imagePlotComponent${i}`);
     o.textFieldPlot = document.getElementById(`textFieldPlotComponent${i}`);    
     o.toggle     = document.getElementById(`togglePlotComponent${i}`);
     o.toggle.oninput = function () {}
@@ -344,6 +362,7 @@ sim.chartBarGr = chartBarGr;
 
 //Link up live-updating text fields
 sim.link_current_stats_text_fields({
+    timeElapsed: document.getElementById("textFieldCurrentTimeElapsed"),
     numMolecules: document.getElementById("textFieldCurrentNumMolecules"),
     temperature: document.getElementById("textFieldCurrentTemperature"),
     area: document.getElementById("textFieldCurrentArea"),
@@ -417,6 +436,11 @@ function stop_simulation(){
 
 function restart_simulation() {
     bRun = false;
+    
+    //Hack to restore initial.
+    sliderWorldAreaPercentage.value = 100;
+    sliderWorldAreaPercentage.oninput();
+    
     //Store and retrive the current toggled state of the plot.
     const arrHidden = {};
     chartLineGr2.data.datasets.forEach((dataSet, i) => {
@@ -653,6 +677,7 @@ function generate_preset_simulation( strType ) {
     if( globalVars.bPresetsOverwriteParams ) {
         overwrite_global_values( strType );
     }
+
     
     // Create the gas composition here.
     const gc = new GasComposition('ratio');
@@ -711,13 +736,17 @@ function generate_preset_simulation( strType ) {
         default:   
             divPhotonEmitterIntensity.style.display = "none";
     }
+    
+    //Hack to restore initial setting.
+    sliderWorldAreaPercentage.value = 100;
+    sliderWorldAreaPercentage.oninput();    
 }
 
 //Synchronise the composition GUI for future user modification. Hook up the variable elements directly to the gas composition object.
 function sync_composition_gui( obj ) {
     /*
     <div id="divInputComponent1" class="divDynamicBox">
-        <p><span id="textFieldComponent1"></span>: <span id="textPercentageComponent1"></span>%</p>
+        <p><image id="textFieldComponent1"></image>: <image id="textPercentageComponent1"></image>%</p>
         <input type="range" min="0" max="100" value="50" class="slider" id="sliderPercentageComponent1">
     </div>    
     */
@@ -742,14 +771,14 @@ function sync_composition_gui( obj ) {
             //o.slider.oninput = function () { this.ratioField.innerHTML = this.value; }
             
             /*
-                o.spanPlot.style.display = "inline";
+                o.imagePlot.style.display = "inline";
                 o.textFieldPlot.innerHTML = name;
                 o.toggle.name = name;
             */
 
         } else {
             o.div.style.display = "none";
-            //o.spanPlot.style.display = "none";
+            //o.imagePlot.style.display = "none";
         }
     }    
 }
@@ -878,3 +907,13 @@ if ( controlsSidebar.widthOpen > 10 ) {
     // .then( instance => {
         // collision_check_wasm = instance.exports.check_collision;
     // });
+
+// = = = Decorations Section = =
+//Show two random molecules from the initial preset library.
+const imageInfoTitlePrefix = document.getElementById("imageInfoTitlePrefix");
+const imageInfoTitleSuffix = document.getElementById("imageInfoTitleSuffix");
+var temp = globalVars.presets[ globalVars.initialPreset ].componentIDs;
+var i = randomInt( 0 , temp.length - 1);
+imageInfoTitlePrefix.src = molLib.get_entry( temp[i] ).imageSet['atom']['10'].image.src;
+var i = randomInt( 0 , temp.length - 1);
+imageInfoTitleSuffix.src = molLib.get_entry( temp[i] ).imageSet['atom']['10'].image.src;

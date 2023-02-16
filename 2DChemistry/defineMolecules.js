@@ -361,8 +361,7 @@ class MoleculeType {
     }
 
     // Use HTML Canvas notation. Return only width/height
-    calculate_draw_dimensions( scale ) {
-        if ( undefined === scale ) { scale = 1.0; }
+    calculate_draw_dimensions() {
         const n = this.numAtoms;
         var xmin = 0.0, xmax = 0.0, ymin = 0.0, ymax = 0.0;
         for ( let i = 0; i < n; i++ ) {
@@ -373,8 +372,8 @@ class MoleculeType {
             xmax = ( xmax < x + r ) ? x + r : xmax;
             ymin = ( ymin > y - r ) ? y - r : ymin;
             ymax = ( ymax < y + r ) ? y + r : ymax;
-        }
-        return [ scale * ( xmax - xmin ), scale * ( ymax - ymin ) ];
+        }        
+        return [ 2 * Math.max( xmax, -xmin), 2 * Math.max( ymax, -ymin) ];
     }
     
     /*
@@ -392,8 +391,8 @@ class MoleculeType {
         var colourExterior = RGBops.compose_array( RGBops.combine( rgbInt, [0,0,0], 0.5 ) );
 
         
-        canvas.width  = dim[0] = Math.ceil( 2.0 * ( dim[0] + lineWidth) );
-        canvas.height = dim[1] = Math.ceil( 2.0 * ( dim[1] + lineWidth) );
+        canvas.width  = dim[0] = Math.ceil( scale * dim[0] + lineWidth);
+        canvas.height = dim[1] = Math.ceil( scale * dim[1] + lineWidth);
         
         // Create gradient
         const n = this.numAtoms;        
@@ -640,10 +639,16 @@ class Molecule {
         this.om *= s;
     }
     
-    resample_speed( T ) {
+    resample_speed( T, f ) {
         if ( undefined === T ) { throw "Resampling requires an input temperature!";}        
-        const vNew = random_speed2D( T, this.mass );
-        this.v.scale( globalVars.timeFactor * vNew / this.v.norm() ) ;
+        let vNew = random_speed2D( T, this.mass );
+        if ( undefined === f ) {
+            this.v.scale( globalVars.timeFactor * vNew / this.v.norm() ) ;
+        } else {
+            const vOld = this.v.norm();
+            vNew = ( 1.0 - f ) * vOld + f * vNew;
+            this.v.scale( globalVars.timeFactor * vNew / this.v.norm() ) ;
+        }
     }
     
     sample_velocity( T ) {
@@ -651,19 +656,29 @@ class Molecule {
         this.v = random_velocity2D( T, this.mass );
         this.v.scale( globalVars.timeFactor );
     }
-    resample_velocity( T ) {
+    
+    resample_velocity( T, f ) {
         if ( undefined === T ) { throw "Resampling requires an input temperature!";}        
-        const vNew = random_velocity2D( T, this.mass );
-        this.v.vec[0] = vNew.vec[0] * globalVars.timeFactor;
-        this.v.vec[1] = vNew.vec[1] * globalVars.timeFactor;
+        const vNew = random_velocity2D( T, this.mass );        
+        if ( undefined === f ) {
+            this.v.vec[0] = vNew.vec[0] * globalVars.timeFactor;
+            this.v.vec[1] = vNew.vec[1] * globalVars.timeFactor;
+        } else {
+            this.v.vec[0] = globalVars.timeFactor * ( ( 1.0 - f ) * this.v.vec[0] + f * vNew.vec[0] );
+            this.v.vec[1] = globalVars.timeFactor * ( ( 1.0 - f ) * this.v.vec[1] + f * vNew.vec[1] );
+        }
     }
     
     set_theta( th ) { this.th = th };
     set_omega( om ) { this.om = om };
-    resample_omega( T ) {
+    resample_omega( T, f ) {
         if ( undefined === T ) { throw "Resampling requires an input temperature!";}
-        //Cheat to just assume that rotations are exactly the same as another dimension of translational movement.        
-        this.om = globalVars.timeFactor * random_speed1D( T, this.rotI ) ;
+        //Cheat to just assume that rotations are exactly the same as another dimension of translational movement.
+        if ( undefined === f ) {
+            this.om = globalVars.timeFactor * random_speed1D( T, this.rotI ) ;
+        } else {
+            this.om = ( 1.0 - f ) * this.om + f * globalVars.timeFactor * random_speed1D( T, this.rotI );
+        }
     }
 }
 

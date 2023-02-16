@@ -12,7 +12,6 @@
     
     = = Notes on performance: = =
     The majority of time is spent on drawing circles for each atom. So there is a practical limit to the total number of atoms that can be included, rather than the complexity of the simulation.
-    Thus, a large molecule like N2O4 wilil be more expensive.    
 */
 
 var globalVars = {};
@@ -51,6 +50,9 @@ globalVars.statisticsUpdateInterval = 100;
 globalVars.worldWidth = undefined; 
 globalVars.worldHeight = undefined;
 
+globalVars.worldAreaPercentage = 100;
+globalVars.worldAreaPercentageParams = { min: 20, max: 100, step: 1 }
+
 globalVars.initialPreset = "nitrogen dioxide";
 globalVars.bPresetsOverwriteParams = true; //Prevent the initial loading from overwriting HTML overrides.
 
@@ -86,10 +88,7 @@ function initial_setup_with_html_vars( mapUserHTMLVars ) {
     }
 }
 
-//NB: these numbers will need sanitisation with the existing minimum and maximum.
-
-
-// Preset simulation variables go here.
+// Preset simulation variables go below this section.
 globalVars.presets = {};
 
 /*
@@ -248,7 +247,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         EActivation:  0.2, DeltaH: -14.7,
     },
     {
-        //TODO: Add symmetry operations!
+        // Symmetric copies
         reactantNames: [ "I₂", "H₂" ], productNames: [ "HI", "HI" ],
         reactantAngles:      [  90,  90 ], 
         reactantAngleRanges: [  90,  90 ],
@@ -258,7 +257,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         bDoReverse: false,
     },
     {
-        //TODO: Add symmetry operations!
+        // Symmetric copies
         reactantNames: [ "I₂", "H₂" ], productNames: [ "HI", "HI" ],
         reactantAngles:      [  90, 270 ], 
         reactantAngleRanges: [  90,  90 ],
@@ -268,7 +267,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         bDoReverse: false,
     },
     {
-        //TODO: Add symmetry operations!
+        // Symmetric copies
         reactantNames: [ "I₂", "H₂" ], productNames: [ "HI", "HI" ],
         reactantAngles:      [ 270,  90 ], 
         reactantAngleRanges: [  90,  90 ],
@@ -278,7 +277,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         bDoReverse: false,
     },
     {
-        //TODO: Add symmetry operations!
+        // Symmetric copies
         reactantNames: [ "I₂", "H₂" ], productNames: [ "HI", "HI" ],
         reactantAngles:      [ 270, 270 ], 
         reactantAngleRanges: [  90,  90 ],
@@ -288,7 +287,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         bDoReverse: false,
     },    
     {
-        //TODO: Add symmetry operations!
+        // Symmetric copies
         reactantNames: [ "HI", "HI" ], productNames: [ "I₂", "H₂" ],
         reactantAngles:      [ 270,  90 ], 
         reactantAngleRanges: [ 120, 120 ],
@@ -298,7 +297,7 @@ globalVars.presetReactions[ "hydrogen iodide equilibrium" ] = [
         bDoReverse: false,
     },
     {
-        //TODO: Add symmetry operations!
+        // Symmetric copies
         reactantNames: [ "HI", "HI" ], productNames: [ "I₂", "H₂" ],
         reactantAngles:      [  90, 270 ], 
         reactantAngleRanges: [ 120, 120 ],
@@ -405,19 +404,25 @@ globalVars.presetReactions[ "combustion - H2 and O2 basic" ] = [
     },
     //  Collision-based water formation 2. (Don't worry about collision symmetry just yet. This need a more advanced angle algorithm).
     {
-        reactantNames: ["OH•", "OH•"], productNames: ["O•", "H₂O"],
+        reactantNames: ["OH•", "OH•"], productNames: [ "O•", "H₂O" ],
         EActivation:  0.0, DeltaH: -6.7,
-        reactantAngles:      [   0,   0 ], 
-        reactantAngleRanges: [ 360, 360 ],
+        reactantAngles:      [   0, 180 ], 
+        reactantAngleRanges: [ 120, 240 ],
         productAngles:       [   0, 180 ],
         productAngleRanges:  [ 360, 240 ],
     },
-    // Self reaction of hydrogen. Guesstimate as not experimentally measurable.
+    // Symmetric copy since the current code won't recognise that the products need to be swapped.
     {
-        reactantNames: ["H₂", "H•"], productNames: ["H•", "H₂"],
-        EActivation: 5.0, DeltaH: 0.0,
-    }
-    // Self reaction of oxygen not used -> goes to ozone.
+        reactantNames: ["OH•", "OH•"], productNames: [ "H₂O", "O•" ],
+        EActivation:  0.0, DeltaH: -6.7,
+        reactantAngles:      [ 180,   0 ], 
+        reactantAngleRanges: [ 240, 120 ],
+        productAngles:       [ 180,   0 ],
+        productAngleRanges:  [ 240, 360 ],
+        bDoReverse: false,
+    },        
+    // Self reaction of hydrogen molecule and radical. Not used.
+    // Self reaction of oxygen  molecule and radical. Not used, as it goes to ozone.
 ]
 
 // TODO: This and the carbon combustion requires an angle-based determination of reaction mechanisms. Example: OH+OH resolves to HOOH and H2O + O depending on angle.
@@ -447,10 +452,26 @@ globalVars.presetReactions[ "combustion - H2 and O2 advanced" ] = [
         //remove the higher energy decomposition pathway as a convenience.
     },
     {
+        //Symmetry 1. Competes with OH + O pathway, which is less energetically favourable.
         reactantNames: [ "H•", "O₂" ], productNames: [ "HO₂•" ],
+        reactantAngles:      [   0,  90 ], 
+        reactantAngleRanges: [ 360,  90 ],
+        productAngles:       [   0 ],
+        productAngleRanges:  [ 360 ],        
         EActivation:  0.0, DeltaH: -20.6,
         lifetimeActivated: 1000,
     },
+    {
+        //Symmetry 2.
+        reactantNames: [ "H•", "O₂" ], productNames: [ "HO₂•" ],
+        reactantAngles:      [   0, 180 ], 
+        reactantAngleRanges: [ 360,  90 ],
+        productAngles:       [   0 ],
+        productAngleRanges:  [ 360 ],        
+        EActivation:  0.0, DeltaH: -20.6,
+        bDoReverse: false,
+        lifetimeActivated: 1000,
+    },    
     {
         reactantNames: [ "HO₂•", "H•" ], productNames: [ "OH•", "OH•" ],
         reactantAngles:      [   0,   0 ],
@@ -458,29 +479,57 @@ globalVars.presetReactions[ "combustion - H2 and O2 advanced" ] = [
         productAngles:       [   0,   0 ],
         productAngleRanges:  [ 180, 180 ],        
         EActivation:  0.2, DeltaH: -15.6,
-        bDoReverse: false,        
+        bDoReverse: false,
         // Reverse transfer pathway outcompeted by peroxide synthesis.
     },
     {
-        reactantNames: [ "HO₂•", "H•" ], productNames: [ "O₂", "H₂" ],
-        reactantAngles:      [ 240,   0 ],
-        reactantAngleRanges: [ 120, 360 ],
-        productAngles:       [ 120,   0 ],
-        productAngleRanges:  [ 360,  90 ],        
-        EActivation:  0.3, DeltaH: -23.0,
+        //Symmetry 1. Alternate hydrogen radical production pathway. Lowest energy without requiring radical formation.
+        reactantNames: [ "H₂", "O₂"  ], productNames: [ "H•", "HO₂•" ], 
+        reactantAngles:      [   0,   0 ],
+        reactantAngleRanges: [  90,  90 ],
+        productAngles:       [   0, 240 ],
+        productAngleRanges:  [ 360, 120 ],        
+        EActivation:  23.3, DeltaH: 23.0,
+    },
+    {
+        //Symmetry 2
+        reactantNames: [ "H₂", "O₂"  ], productNames: [ "H•", "HO₂•" ], 
+        reactantAngles:      [   0, 180 ],
+        reactantAngleRanges: [  90,  90 ],
+        productAngles:       [   0, 240 ],
+        productAngleRanges:  [ 360, 120 ],        
+        EActivation:  23.3, DeltaH: 23.0,
         bDoReverse: false,
-        //Avoid alternative pathways for hydroxyl radical productions for now? These two seem like the lowest energy path for kickstarting the reaction process... TODO: encode symmetry.
+    },
+    {
+        //Symmetry 3
+        reactantNames: [ "H₂", "O₂"  ], productNames: [ "H•", "HO₂•" ], 
+        reactantAngles:      [ 180,   0 ],
+        reactantAngleRanges: [  90,  90 ],
+        productAngles:       [   0, 240 ],
+        productAngleRanges:  [ 360, 120 ],        
+        EActivation:  23.3, DeltaH: 23.0,
+        bDoReverse: false,
+    },
+        {
+        //Symmetry 4
+        reactantNames: [ "H₂", "O₂"  ], productNames: [ "H•", "HO₂•" ], 
+        reactantAngles:      [ 180, 180 ],
+        reactantAngleRanges: [  90,  90 ],
+        productAngles:       [   0, 240 ],
+        productAngleRanges:  [ 360, 120 ],        
+        EActivation:  23.3, DeltaH: 23.0,
+        bDoReverse: false,
     },
     { 
-        // The other hydrogen radical formation path. Knock-on reaction. Use Transfer as a temporary shoe-in.
+        //Alternate hydrogen radical production pathway. Lowest energy but requires a radical
         reactantNames: [ "HO₂•", "H•" ], productNames: [ "H₂O", "O•" ],
         reactantAngles:      [ 120,   0 ],
         reactantAngleRanges: [ 120, 360 ],
         productAngles:       [   0,   0 ],
-        productAngleRanges:  [ 360, 360 ],        
+        productAngleRanges:  [ 120, 360 ],        
         EActivation:  0.7, DeltaH: -22.3,
         angleReactionOffset: 240,
-        bDoReverse: false,
     },
     { 
         reactantNames: [ "HO₂•", "O•" ], productNames: [ "O₂", "OH•" ],
@@ -499,46 +548,124 @@ globalVars.presetReactions[ "combustion - H2 and O2 advanced" ] = [
         EActivation: 4.6, DeltaH: -29.1,
     },
     { 
-        //TODO: Code in Symmetry!    
-        reactantNames: [ "HO₂•", "HO₂•" ], productNames: [ "O₂", "H₂O₂" ],
-        reactantAngles:      [ 240,   0 ],
-        reactantAngleRanges: [ 120, 360 ],
-        productAngles:       [ 120, 240 ],
-        productAngleRanges:  [ 360, 360 ],        
+        //Symnmetry 1
+        reactantNames: [ "HO₂•", "HO₂•" ], productNames: [ "H₂O₂", "O₂" ],
+        reactantAngles:      [  45, 225 ],
+        reactantAngleRanges: [ 180, 180 ],
+        productAngles:       [   0,   0 ],
+        productAngleRanges:  [ 360, 360 ],
         EActivation: 4.6, DeltaH: -15.9,
-        //bDoReverse: false,
     },
     { 
-        //TODO: Code in Symmetry!
+        //Symnmetry 2
+        reactantNames: [ "HO₂•", "HO₂•" ], productNames: [ "O₂", "H₂O₂" ],
+        reactantAngles:      [ 225,  45 ],
+        reactantAngleRanges: [ 180, 180 ],
+        productAngles:       [   0,   0 ],
+        productAngleRanges:  [ 360, 360 ],
+        EActivation: 4.6, DeltaH: -15.9,
+        bDoReverse: false,
+    },    
+    { 
+        //Symmetry 1
         reactantNames: [ "H₂O₂", "H•" ], productNames: [ "HO₂•", "H₂" ],
+        reactantAngles:      [  45,   0 ],
+        reactantAngleRanges: [  90, 360 ],
+        productAngles:       [   0,   0 ],
+        productAngleRanges:  [ 180, 360 ],        
         EActivation: 3.3, DeltaH: -7.1,
     },
     { 
-        //TODO: Code in Symmetry! Knock on reaction.
-        reactantNames: [ "H₂O₂", "H•" ], productNames: [ "H₂O", "OH•" ],
-        angleReactionOffset: 240,
+        //Symmetry 2
+        reactantNames: [ "H₂O₂", "H•" ], productNames: [ "HO₂•", "H₂" ],
+        reactantAngles:      [ 225,   0 ],
+        reactantAngleRanges: [  90, 360 ],
+        productAngles:       [  45,   0 ],
+        productAngleRanges:  [ 180, 360 ],
+        EActivation: 3.3, DeltaH: -7.1,
+        bDoReverse: false,
+    },    
+    { 
+        //Symmetry 1. Knock on reaction modelled by transfer reaction with rotation.
+        reactantNames: [ "H₂O₂", "H•" ], productNames: [ "OH•", "H₂O" ],
+        reactantAngles:      [ 135,   0 ],
+        reactantAngleRanges: [  90, 360 ],
+        productAngles:       [   0,   0 ],
+        productAngleRanges:  [ 180, 120 ],
+        angleReactionOffset: 45,
         EActivation: 1.5, DeltaH: -28.8,
-        //bDoReverse: false,        
     },
     { 
-        //TODO: Code in Symmetry! Knock on reaction.
+        //Symmetry 2. Knock on reaction modelled by transfer reaction with rotation.
+        reactantNames: [ "H₂O₂", "H•" ], productNames: [ "OH•", "H₂O" ],
+        reactantAngles:      [ 315,   0 ],
+        reactantAngleRanges: [  90, 360 ],
+        productAngles:       [   0,   0 ],
+        productAngleRanges:  [ 180, 120 ],
+        angleReactionOffset: 45,
+        EActivation: 1.5, DeltaH: -28.8,
+        bDoReverse: false,
+    },
+    // { 
+        // Symmetry 1. Knock on reaction modelled by transfer reaction with rotation.
+        // reactantNames: [ "H₂O₂", "O•" ], productNames: [ "OH•", "HO₂•" ],
+        // reactantAngles:      [ 135,   0 ],
+        // reactantAngleRanges: [  90, 360 ],
+        // productAngles:       [   0, 135 ],
+        // productAngleRanges:  [ 180,  90 ],
+        // angleReactionOffset: 45,
+        // EActivation: 1.7, DeltaH: -6.5,
+    // },
+    // { 
+        //Symmetry 2. Knock on reaction modelled by transfer reaction with rotation.
+        // reactantNames: [ "H₂O₂", "O•" ], productNames: [ "OH•", "HO₂•" ],
+        // reactantAngles:      [ 315,   0 ],
+        // reactantAngleRanges: [  90, 360 ],
+        // productAngles:       [   0, 135 ],
+        // productAngleRanges:  [ 180,  90 ],
+        // angleReactionOffset: 45,
+        // EActivation: 1.7, DeltaH: -6.5,
+        // bDoReverse: false,
+    // },
+    { 
+        //Symmetry 3. Direct impact version
         reactantNames: [ "H₂O₂", "O•" ], productNames: [ "HO₂•", "OH•" ],
-        angleReactionOffset: 240,
+        reactantAngles:      [  45,   0 ],
+        reactantAngleRanges: [  90, 360 ],
+        productAngles:       [   0, 180 ],
+        productAngleRanges:  [ 180, 180 ],
         EActivation: 1.7, DeltaH: -6.5,
-        //bDoReverse: false,
     },
     { 
-        //TODO: Code in Symmetry! Knock on reaction.
+        //Symmetry 4. Direct impact version
+        reactantNames: [ "H₂O₂", "O•" ], productNames: [ "HO₂•", "OH•" ],
+        reactantAngles:      [ 225,   0 ],
+        reactantAngleRanges: [  90, 360 ],
+        productAngles:       [   0, 180 ],
+        productAngleRanges:  [ 180, 180 ],
+        EActivation: 1.7, DeltaH: -6.5,
+        bDoReverse: false,        
+    },    
+    { 
+        //Symmetry 1.
         reactantNames: [ "H₂O₂", "OH•" ], productNames: [ "HO₂•", "H₂O" ],
-        reactantAngles:      [ 240,   0 ],
-        reactantAngleRanges: [ 120, 180 ],
-        productAngles:       [ 120,  90 ],
-        productAngleRanges:  [ 360, 360 ],                
-        angleReactionOffset: 240,
+        reactantAngles:      [  45,   0 ],
+        reactantAngleRanges: [  90, 180 ],
+        productAngles:       [   0, 180 ],
+        productAngleRanges:  [ 180, 240 ],                
         EActivation: 3.0, DeltaH: -13.2,
         //bDoReverse: false,
     },    
-    
+    { 
+        //Symmetry 2.
+        reactantNames: [ "H₂O₂", "OH•" ], productNames: [ "HO₂•", "H₂O" ],
+        reactantAngles:      [ 225,   0 ],
+        reactantAngleRanges: [  90, 180 ],
+        productAngles:       [   0, 180 ],
+        productAngleRanges:  [ 180, 240 ],                
+        EActivation: 3.0, DeltaH: -13.2,
+        bDoReverse: false,
+    },
 ]
 
 
