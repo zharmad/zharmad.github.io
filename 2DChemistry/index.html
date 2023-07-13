@@ -37,17 +37,24 @@
             </p>
             <hr width="50%" align="center" color="grey" size="2">                
             Load simulation preset:
-            <div class="dropdown">
-                <button id="buttonPresetChoices" class="buttonDropDown">click here</button>
+            <div class="dropdown">            
+                <button id="buttonPresetChoices" class="buttonDropDown">basic</button>
                 <div id="divSimulationPresetOptions" class="dropdown-content">
                     <a onclick="generate_preset_simulation('noble gas')">Mixture of Noble gases</a>        
                     <a onclick="generate_preset_simulation('atmosphere')">Earth Atmosphere</a>
-                    <a onclick="generate_preset_simulation('ozone layer formation')">Ozone layer equilibrium</a>
+                    <a onclick="generate_preset_simulation('ozone layer equilibrium')">Ozone layer equilibrium</a>
                     <a onclick="generate_preset_simulation('nitrogen dioxide')">Nitrogen dioxide equilibrium</a>
                     <a onclick="generate_preset_simulation('hydrogen iodide equilibrium')">Hydrogen iodide equilibrium</a>
-                    <a onclick="generate_preset_simulation('combustion - H2 and O2 basic')">Oxygen and hydrogen combustion (simplified)</a>
-                    <a onclick="generate_preset_simulation('combustion - H2 and O2 advanced')">Oxygen and hydrogen combustion (complete, WIP)</a>
+                    <a onclick="generate_preset_simulation('combustion - H2 and O2 basic')">Oxygen and hydrogen simple combustion</a>
                 </div>
+            </div>
+            <div class="dropdown"> 
+                <button id="buttonPresetChoicesAdv" class="buttonDropDown">advanced</button>
+                <div id="divSimulationPresetOptionsAdv" class="dropdown-content">
+                    <a onclick="generate_preset_simulation('ozone layer with Chlorine')">Ozone layer with Cl radicals</a>
+                    <a onclick="generate_preset_simulation('ozone layer with NOX')">Ozone layer with NOX species</a>
+                    <a onclick="generate_preset_simulation('combustion - H2 and O2 advanced')">Oxygen and hydrogen full combustion (WIP)</a>
+                </div>                
             </div>
             <hr width="50%" align="center" color="grey" size="2">
             <p><label class="switchToggle"><input type="checkbox" id="togglePresetsOverwriteParams"><span class="sliderToggle round"></span></label> Overwrite existing parameters on load</p>
@@ -248,6 +255,10 @@
                 <p><span id="colourBoxComponent5">  </span> <span id="textFieldComponent5"></span> : <span id="textPercentageComponent5"></span>%</p>
                 <input type="range" min="0" max="100" value="5" class="slider" id="sliderPercentageComponent5">
             </div>
+            <div id="divInputComponent6" class="divDynamicBox">
+                <p><span id="colourBoxComponent6">  </span> <span id="textFieldComponent6"></span> : <span id="textPercentageComponent6"></span>%</p>
+                <input type="range" min="0" max="100" value="5" class="slider" id="sliderPercentageComponent6">
+            </div>            
         </div>
 
         <!-- Sidebar for time-based analysis -->
@@ -318,6 +329,7 @@
     </div>
     
     <!-- Loading section for all relevant Javascripts -->
+    <script src="lib/papaparse.min.js"></script>
     <script src="defineMaths.js"></script>
     <script src="defineGlobals.js"></script>
     <script src="defineElements.js"></script>

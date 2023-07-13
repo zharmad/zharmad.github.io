@@ -1350,8 +1350,17 @@ class PhotonEmitterModule {
         
         this.funcCollRadii = {
             "O₂": PhotonEmitterModule.collision_radii_func_O2,
-            "O₃": PhotonEmitterModule.collision_radii_func_O3,
+            "O₃": PhotonEmitterModule.collision_radii_func_O3,            
+            "ClO•": PhotonEmitterModule.collision_radii_func_ClO,
+            "ClOO•": PhotonEmitterModule.collision_radii_func_ClOO,
+            "ClOOCl": PhotonEmitterModule.collision_radii_func_ClOOCl,
+            "Cl₂": PhotonEmitterModule.collision_radii_func_Cl2,
+            "Cl₂O": PhotonEmitterModule.collision_radii_func_Cl2O,
             "I₂": PhotonEmitterModule.collision_radii_func_I2,
+            "N₂O": PhotonEmitterModule.collision_radii_func_N2O,
+            "NO•": PhotonEmitterModule.collision_radii_func_NO,
+            "NO₂•": PhotonEmitterModule.collision_radii_func_NO2,
+            "NO₃•": PhotonEmitterModule.collision_radii_func_NO3,
         }
     }
 
@@ -1363,22 +1372,57 @@ class PhotonEmitterModule {
     }    
     
     /*
-        Add fixed collision cross-section functions based on wavelength.
-        1e-18 cm^2 = 100 pm^2. Then square root ( A / PI) to get radii in order to drop down to 2D.
+        Add fixed collision cross-section functions based on wavelength. Inputs are areas in pm^2 and wavelengths in nm.
+        1e-20 cm^2 = 1 pm^2. Then square root ( A / PI) to get radii in order to drop down to 2D.
         1 FWHM ~= 2.355 sigma.
         In general, searching for the terms (photo)absorption, photolysis, photodissociation, collision, and/or cross-section should be be useful when looking for the relevant raw data of new species. Should watch out that it is for gas phase data.
+        Also note that a database is available at: https://uv-vis-spectral-atlas-mainz.org. DOI: 10.5194/essd-5-365-2013
     */
     // Imitating UV spectra found in Itikawa et al. (1989), DOI: 10.1063/1.555841
     static collision_radii_func_O2( l ) { return Math.sqrt( 1150 * gaussian(l, 140, 20) / Math.PI); }
     
     // Imitating the UV absorption spectra found in Qu et al. (2015), DOI: 10.1063/1.2001650
-    // Use gaussian function: max 1140 pm^2 -> 19 pm in radii. Center of gaussian at 255 nm, with ~17 nm sigma.
-    static collision_radii_func_O3( l ) { return Math.sqrt( 1140 * gaussian(l, 255, 17) / Math.PI); }
+    // Use UV-vis databse graphs, both Hartley band and VUV peaks.
+    static collision_radii_func_O3( l ) {
+        return Math.sqrt( 2300 * gaussian(l, 122, 2.1) / Math.PI) + Math.sqrt( 1500 * gaussian(l, 133, 3) / Math.PI) + Math.sqrt( 1140 * gaussian(l, 255, 17.6) / Math.PI);
+    }
+
+    //Chlorine species taken from UV-VIS database.
+    static collision_radii_func_Cl2( l ) { return Math.sqrt(  26 * gaussian(l, 330, 26) / Math.PI); }
+    static collision_radii_func_Cl2O( l ) {
+        return  Math.sqrt( 2000 * gaussian(l, 135, 17) / Math.PI) + Math.sqrt( 1700 * gaussian(l, 171, 7.2) / Math.PI) + Math.sqrt( 180 * gaussian(l, 270, 21) / Math.PI);
+    }
+    static collision_radii_func_ClO( l ) { return Math.sqrt( 550 * gaussian(l, 268, 17) / Math.PI); }
+    static collision_radii_func_ClOO( l ) { return Math.sqrt( 2500 * gaussian(l, 245, 13) / Math.PI); }
+    static collision_radii_func_ClOOCl( l ) {
+        return Math.sqrt( 640 * gaussian(l, 246, 13) / Math.PI) + Math.sqrt( 1280 * gaussian(l, 146, 38) / Math.PI);
+    } //Second one is a guess because data do not extend into the far UV, but we know there is an absoprtion peak lower down.
+
+    // Modelled UV absorption of NOx species as follows. Note double gaussian in NO2.   
+    // 
+    // N2O: Gaussian fit to Table 1, Carlon et al. (2010). DOI: 10.5194/acp-10-6137-2010
+    // NO: Very approximate fit to source data. See UV-vis database.
+    // NO2: Gaussian guesses based on Schneider et al. (1987). DOI: 10.1016/1010-6030(87)85001-3  . Also see Fig3 3 in paper below.
+    // NO3: Photolysed very quickly during the day. See Fig. 5 of Bingen et al. (2019). DOI: 10.3389/fenvs.2019.00118
+    static collision_radii_func_N2O( l ) {
+        return  Math.sqrt( 2800 * gaussian(l, 112, 3.4) / Math.PI) + Math.sqrt( 8600 * gaussian(l, 129, 3.4) / Math.PI) + Math.sqrt( 700 * gaussian(l, 146, 3.4) / Math.PI);
+     }
+    static collision_radii_func_NO(  l ) {
+        return Math.sqrt( 250 * gaussian(l, 120, 12) / Math.PI + 250 * gaussian(l, 140, 12) / Math.PI +  300 * gaussian(l, 180, 12) / Math.PI ) ;
+    }    
+    static collision_radii_func_NO2( l ) {
+        return Math.sqrt(  40 * gaussian(l, 215, 14) / Math.PI + 60 * gaussian(l, 400, 50) / Math.PI);
+    }        
+    static collision_radii_func_NO3( l ) {
+        return Math.sqrt( 300 * gaussian(l, 570, 43) / Math.PI + 2000 * gaussian(l, 662,  4) / Math.PI);
+    }       
     
     // Imitating the visual absorption spectra found in Saiz-Lopez et al. (2004), DOI: 10.5194/acp-4-1443-2004
     // NB: The UV band is ignored. The additional vibrational peaks in the green-band is also ignored for simplicity.
     static collision_radii_func_I2( l ) { return Math.sqrt( 310 * gaussian(l, 525, 34) / Math.PI); }
     // For the UV absorption of HI, see: Brion et al. (2005), DOI: 10.1016/j.elspec.2005.01.010
+
+
 
     /*
         Sources: https://stackoverflow.com/questions/3407942/rgb-values-of-visible-spectrum
@@ -1439,12 +1483,16 @@ class PhotonEmitterModule {
         if ( undefined === args.maxLambda ) { args.maxLambda = 280; }
         switch ( this.model ) {
             case 'single':
-                this.avgLambda = args.avgLambda;
+                if ( undefined === args.photonColour ) {
+                    args.photonColour = PhotonEmitterModule.convert_wavelength_to_RGBcolour( args.avgLambda );
+                }
+                this.avgLambda = args.avgLambda;                
                 break;
             case 'gaussian':
                 this.avgLambda = args.avgLambda;
                 this.sigLambda = args.sigLambda;
                 break;
+            case 'sqrt-bias':
             case 'solar':
                 this.minLambda = args.minLambda;
                 this.maxLambda = args.maxLambda;
@@ -1455,7 +1503,7 @@ class PhotonEmitterModule {
         }
 
         if ( undefined === args.photonColour ) {
-            this.photonColour = PhotonEmitterModule.convert_wavelength_to_RGBcolour( this.avgLambda );
+            // this.photonColour = PhotonEmitterModule.convert_wavelength_to_RGBcolour( this.avgLambda );
         } else {
             this.photonColour = args.photonColour ;
         }
@@ -1479,10 +1527,12 @@ class PhotonEmitterModule {
                 return this.avgLambda;
             case 'gaussian':
                 return this.avgLambda + random_1DGaussian( this.sigLambda );
-            case 'solar':
+            case 'sqrt-bias':
                 // Instead of the full black body radiation curve at 5900K...
                 // simple bias towards higher wavelengths to approximate the wavelength dependence in the UV regime.
-                return this.minLambda + Math.sqrt( Math.random() ) * ( this.maxLambda - this.minLambda );
+                return this.minLambda + Math.sqrt( Math.random() ) * ( this.maxLambda - this.minLambda );            
+            case 'solar':
+                // TODO.
             default:
                 return undefined;
         }
@@ -1575,14 +1625,26 @@ class PhotonEmitterModule {
     draw_call( ctx ) {
 
         const n = this.numPhotons;
-        ctx.beginPath();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = this.photonColour;
-        for ( let i = 0; i < n; i++ ) {
-            ctx.moveTo( this.posXPhoton[i]/globalVars.distScale, 0 );
-            ctx.lineTo( this.posXPhoton[i]/globalVars.distScale, this.posYPhoton[i]/globalVars.distScale );
-            //console.log( this.posYPhoton[i]/globalVars.distScale );
-        }
+        if ( undefined === this.photonColour) {            
+            ctx.lineWidth = 1;
+            for ( let i = 0; i < n; i++ ) {
+                ctx.beginPath();
+                ctx.strokeStyle = PhotonEmitterModule.convert_wavelength_to_RGBcolour( this.LPhoton[i] );
+                ctx.moveTo( this.posXPhoton[i]/globalVars.distScale, 0 );
+                ctx.lineTo( this.posXPhoton[i]/globalVars.distScale, this.posYPhoton[i]/globalVars.distScale );
+                ctx.stroke();                
+                //console.log( this.posYPhoton[i]/globalVars.distScale );
+            }
+        } else {
+            ctx.beginPath();
+            ctx.lineWidth = 1;            
+            ctx.strokeStyle = this.photonColour;
+            for ( let i = 0; i < n; i++ ) {
+                ctx.moveTo( this.posXPhoton[i]/globalVars.distScale, 0 );
+                ctx.lineTo( this.posXPhoton[i]/globalVars.distScale, this.posYPhoton[i]/globalVars.distScale );
+                //console.log( this.posYPhoton[i]/globalVars.distScale );
+            }
+        }       
         //ctx.closePath();
         ctx.stroke();
     }

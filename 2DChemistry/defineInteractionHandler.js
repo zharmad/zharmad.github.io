@@ -112,20 +112,34 @@ class InteractionHandler {
         
         this.convert_angle_units( args );
 
-        // Grab the moltype entries themselves here.
+        // Grab the moltype entries themselves here and add up the heats of formation to determine DeltaH
         args.reactants = []; const nAtomsReac = [];
+        var totDeltaH = 0.0; var entry = "";
         const nReactants = args.reactantNames.length;
         for ( var i=0;i<nReactants;i++ ) {
-            args.reactants.push( this.moleculeLibrary.get_entry( args.reactantNames[i] ) );
+            entry = this.moleculeLibrary.get_entry( args.reactantNames[i] );
+            totDeltaH -= entry.DeltaH;
+            args.reactants.push( entry );
             nAtomsReac.push( args.reactants[i].n );
         }
 
         args.products  = []; const nAtomsProd = [];
         const nProducts  = args.productNames.length;
         for ( var i=0;i<nProducts;i++ ) {
-            args.products.push( this.moleculeLibrary.get_entry( args.productNames[i] ) );
+            entry = this.moleculeLibrary.get_entry( args.productNames[i] );
+            totDeltaH += entry.DeltaH;
+            args.products.push( entry );
             nAtomsProd.push( args.products[i].n );
         }
+
+        console.log( `Parsed reaction ${args.reactantNames} -> ${args.productNames}` );
+        console.log( "Computed EActivation and DeltaH:", args.EActivation, totDeltaH * 0.1 );
+        if ( undefined === args.DeltaH ) {            
+            args.DeltaH = totDeltaH * 0.1;
+        } else {
+            console.log( "Using existing reaction DeltaH", args.DeltaH );
+        }
+        
         //Complete determination of the type of reaction class to invoke.        
         var objReaction = undefined;
         switch ( nReactants ) {
@@ -988,8 +1002,9 @@ class reactionTransfer extends reaction {
     
     Usage:
     (1) Define an authoritative list of all species that can exist in the simulation.
-    (2) Define every potential reaction, their energies, required impact geometries, and success probabilities.
+    (2) Define every potential reaction, their activation energies, required impact geometries, and success probabilities.
     (3) Code will parse the arguments and attempt to determine the optimal reaction functions and where to slot in.
+    NB: The enthalpies of formation are found within defineMolecules instead, as it is assumed that all molecuels have constant Delta_formation H.
     
     Notes:
     (1) The forward and reverse reactions are created simultaneously, unless overriden by bDoReverse or bDoForward.
@@ -1021,25 +1036,27 @@ function get_new_preset_gas_reactions( args ) {
         case 'atmosphere':
             break;
         case 'nitrogen dioxide':
+            arrReactions = globalVars.presetReactions[ "nitrogen dioxide" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });                
             // DeltaH for the dissociation is ~13 kcal/mol with Ea of ~14 kcal/mol, or 54 & 59 kJ/mol.
             // The experimental self dissociation rate constant is ~ 1e6 per second at 298K. This is roughly 39 kJ/mol
             // Source: Ornellas et al., 2003. DOI: 10.1063/1.459256
-            gr.parse_input_reaction({
-                //Participants.
-                reactantNames: ["NO₂", "NO₂"],                
-                productNames: ["N₂O₄"],
-                //Impact geometry.
-                reactantAngles:      [   0, 180 ], // Filled with 0.0 is not given.
-                reactantAngleRanges: [ 180, 180 ], // Filled with 360 if not given. 
-                productAngles:       [ 0 ],
-                productAngleRanges:  [ 0 ],
-                EActivation: 0.5, DeltaH: -3.9,
-                lifetimeActivated: 2000,
-                //Note: all arguments below reflect default setting
-                //angleReactionOffset: 0.0,                
-                //unitAngle: 'degrees',
-                //bDoForward: true, bDoReverse: true,
-            });  
+            // gr.parse_input_reaction({
+                // //Participants.
+                // reactantNames: ["NO₂", "NO₂"],                
+                // productNames: ["N₂O₄"],
+                // //Impact geometry.
+                // reactantAngles:      [   0, 180 ], // Filled with 0.0 is not given.
+                // reactantAngleRanges: [ 180, 180 ], // Filled with 360 if not given. 
+                // productAngles:       [ 0 ],
+                // productAngleRanges:  [ 0 ],
+                // EActivation: 0.5, DeltaH: -3.9,
+                // lifetimeActivated: 2000,
+                // //Note: all arguments below reflect default setting
+                // //angleReactionOffset: 0.0,                
+                // //unitAngle: 'degrees',
+                // // bDoForward: true, bDoReverse: true,
+            // });  
             break;
             
         case 'hydrogen iodide equilibrium':
@@ -1047,8 +1064,22 @@ function get_new_preset_gas_reactions( args ) {
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });        
             break;
             
-        case 'ozone layer formation':
-            arrReactions = globalVars.presetReactions[ "ozone layer formation" ];
+        case 'ozone layer equilibrium':
+            arrReactions = globalVars.presetReactions[ "ozone equilibrium core" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
+            break;
+
+        case 'ozone layer with Chlorine':
+            arrReactions = globalVars.presetReactions[ "ozone equilibrium core" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
+            arrReactions = globalVars.presetReactions[ "ozone layer with Chlorine" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
+            break;
+
+        case 'ozone layer with NOX':
+            arrReactions = globalVars.presetReactions[ "ozone equilibrium core" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });               
+            arrReactions = globalVars.presetReactions[ "ozone layer with NOX" ];
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
             break;        
 
@@ -1060,7 +1091,7 @@ function get_new_preset_gas_reactions( args ) {
         case 'combustion - H2 and O2 advanced':
             arrReactions = globalVars.presetReactions[ "combustion - H2 and O2 advanced" ];
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
-            //arrReactions = globalVars.presetReactions[ "ozone layer formation" ];
+            //arrReactions = globalVars.presetReactions[ "ozone layer equilibrium" ];
             //arrReactions.forEach( r => { gr.parse_input_reaction( r ); });                        
             arrReactions = globalVars.presetReactions[ "combustion - H2 and O2 basic" ];
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });            

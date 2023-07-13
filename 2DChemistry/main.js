@@ -197,7 +197,7 @@ sliderPhotonEmitterIntensity.oninput = function() {
     Composition GUI buttons. Store as a linear array of objects that contain references to each HTML element for adjustments.
 */
 const arrCompositionGUI = [];
-for ( let i = 0; i < 6; i++ ) {
+for ( let i = 0; i < 7; i++ ) {
     const o = {} ;
     // GUI changes in the compositions tab for dynamically showing the number and type of components available for adjustment.
     o.div        = document.getElementById(`divInputComponent${i}`);
@@ -707,20 +707,48 @@ function generate_preset_simulation( strType ) {
     sim.reset_plugin_modules();
     // Load Photon emitter module for presets that require them.
     switch ( strType ) {
-        case "ozone layer formation":
+        case "ozone layer equilibrium":
             var mod = new PhotonEmitterModule({
-                model: "solar",
-                minLambda: 100,
-                maxLambda: 280,
+                model: "sqrt-bias",
+                minLambda:  80,
+                maxLambda: 300,
                 molNamesReaction: [ "O₂", "O₃" ],
                 photonColour: 'rgb(255,0,255)', // Hot-pink magenta rays with width 1.
             });
             sim.add_plugin_module( mod );
             divPhotonEmitterIntensity.style.display = "block";
-            textFieldPhotonEmitterDescription.innerHTML = "<strong>solar UV radiation model</strong></br>";
+            textFieldPhotonEmitterDescription.innerHTML = "<strong>simple UV radiation model</strong></br>";
             sliderPhotonEmitterIntensity.value = 1.0;
             sliderPhotonEmitterIntensity.oninput();
             break;
+        case "ozone layer with Chlorine":
+            var mod = new PhotonEmitterModule({
+                model: "sqrt-bias",
+                minLambda:  80,
+                maxLambda: 400,
+                molNamesReaction: [ "O₂", "O₃", "ClO•", "ClOO•", "ClOOCl", "Cl₂", "Cl₂O" ],
+                photonColour: 'rgb(255,0,255)', // Hot-pink magenta rays with width 1.
+            });
+            sim.add_plugin_module( mod );
+            divPhotonEmitterIntensity.style.display = "block";
+            textFieldPhotonEmitterDescription.innerHTML = "<strong>simple UV-purple radiation model</strong></br>";
+            sliderPhotonEmitterIntensity.value = 1.1;
+            sliderPhotonEmitterIntensity.oninput();
+            break;            
+        case "ozone layer with NOX":
+            var mod = new PhotonEmitterModule({
+                model: "sqrt-bias",
+                minLambda:  80,
+                maxLambda: 700,
+                molNamesReaction: [ "O₂", "O₃", "N₂O", "NO•", "NO₂•", "NO₃•" ],
+                // photonColour: 'rgb(255,0,255)',
+            });
+            sim.add_plugin_module( mod );
+            divPhotonEmitterIntensity.style.display = "block";
+            textFieldPhotonEmitterDescription.innerHTML = "<strong>simple UV-Vis radiation model</strong></br>";
+            sliderPhotonEmitterIntensity.value = 1.6;
+            sliderPhotonEmitterIntensity.oninput();
+            break;            
         case "hydrogen iodide equilibrium":
            var mod = new PhotonEmitterModule({
                 model: "single",

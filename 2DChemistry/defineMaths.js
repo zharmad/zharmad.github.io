@@ -185,9 +185,10 @@ class Vector2D {
     
     // Object functions. 
     debug() { console.log(`Values: [${this.vec[0]},${this.vec[1]}]`); }
-    
+        
     copy() { return Vector2D.duplicate( this ); }
     set_to( v ) { this.vec[0] = v.vec[0] ; this.vec[1] = v.vec[1]; }
+    reset() { this.vec[0] = 0.0; this.vec[1] = 0.0; }
 
     scaled_copy( s ) { return new Vector2D( s*this.vec[0], s*this.vec[1] ); }
     scale( s ) { this.vec[0] *= s; this.vec[1] *= s; }    
