@@ -98,16 +98,16 @@ globalVars.presets = {};
         3. Component ratios don't need to be listed for intermediates. The undefined entries will just resolve to 0.0.
 */
 // Noble Gas, i.e. hard spheres.
-var temp = globalVars.presets[ "noble gas" ] = {};
+var temp = globalVars.presets[ "inert gases" ] = {};
 temp.distScale = 20;
 temp.timeDelta = 50;
 temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 124;
-temp.densMolecules = 0.45;
-temp.numComponentsShow = 5;
-temp.componentIDs    = [ "He", "Ne", "Ar", "Kr", "Xe" ];
-temp.componentRatios = [ 16, 8, 4, 2, 1 ];
+temp.densMolecules = 1.00;
+temp.numComponentsShow = 9;
+temp.componentIDs    = [ "He", "Ne", "N₂", "Ar", "CO₂", "Kr", "CF₄", "Xe", "SF₆" ];
+temp.componentRatios = [  250, 49.6, 35.7, 25.0,  22.7, 11.9,  11.3, 7.62, 6.85 ];
 
 /*
     Note: one molecule of ideal gas occupies 11.9 nm^2  at SATP, or 41.2 nm^3 in 3D.
@@ -169,9 +169,9 @@ temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.7;
-temp.numComponentsShow = 4;
+temp.numComponentsShow = 10;
 temp.componentIDs    = [ "N₂", "O₂", "O₃", "ClO•", "Cl•", "ClOO•", "ClOOCl", "Cl₂", "Cl₂O", "O•" ];
-temp.componentRatios = [ 0.76, 0.20, 0.01, 0.03 ];
+temp.componentRatios = [ 0.76, 0.20, 0.01, 0.03, 0.0 ];
 temp.componentHidePlot = [ "N₂",  "Cl•", "ClO•", "ClOO•", "ClOOCl", "Cl₂", "Cl₂O" ];
 
 temp = globalVars.presets[ "ozone layer with NOX" ] = {};
@@ -181,7 +181,7 @@ temp.worldTemperature = 200;
 temp.bDoHeatExchange = true;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.7;
-temp.numComponentsShow = 6;
+temp.numComponentsShow = 8;
 temp.componentIDs    = [ "N₂", "O₂", "O₃", "NO•", "NO₂•", "NO₃•", "N•", "O•" ];
 temp.componentRatios = [ 0.76, 0.20, 0.01, 0.01, 0.02, 0.0 ];
 temp.componentHidePlot = [ "N₂", "NO•", "NO₂•", "NO₃•", "N•" ];
@@ -705,8 +705,8 @@ globalVars.presetReactions[ "ozone layer with NOX" ] = [
         reactantAngleRanges: [ 240, 360 ],
         productAngles:       [   0,   0 ],
         productAngleRanges:  [ 360, 180 ],
-        EActivation: 1.0, bDoReverse: false
-    }, //DeltaH: -523 kJ/mol. Guessed EA.  Ignore reverse pathway
+        EActivation: 1.0
+    }, //DeltaH: -523 kJ/mol. Guessed EA.
     { 
         reactantNames: [ "NO•", "N•" ],  productNames: [ "O•", "N₂" ], 
         reactantAngles:      [   0,   0 ], 

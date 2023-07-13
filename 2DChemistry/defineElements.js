@@ -70,33 +70,33 @@ class ElementList {
     // take default radii values from Van der Waals: https://en.wikipedia.org/wiki/Van_der_Waals_radius
     add_all_known_elements() {
         var e = null;
-        e = new Element(  1,  "H",  1.008, 120, [255, 255, 255] );
+        e = new Element(  1,  "H",  1.008, 120, [221, 221, 221] );
         this.elements.push(e);
-        e = new Element(  2, "He",  4.003, 140, [221, 221, 221] );
+        e = new Element(  2, "He",  4.003, 140, [204, 204, 204] );
         this.elements.push(e);
         e = new Element(  6,  "C", 12.011, 170, [ 72,  72,  72] );
         this.elements.push(e);
-        e = new Element(  7,  "N", 14.007, 155, [ 64,  64, 255] );
+        e = new Element(  7,  "N", 14.007, 155, [ 80,  92, 255] );
         this.elements.push(e);
-        e = new Element(  8,  "O", 15.999, 152, [255,  64,  64] );
+        e = new Element(  8,  "O", 15.999, 152, [255,  80,  92] );
         this.elements.push(e);
-        e = new Element(  9,  "F", 18.998, 147, [  0, 255,  42] );
+        e = new Element(  9,  "F", 18.998, 147, [100, 255, 100] );
         this.elements.push(e);
-        e = new Element( 10, "Ne", 20.180, 154, [204, 204, 204] );
+        e = new Element( 10, "Ne", 20.180, 154, [187, 187, 187] );
         this.elements.push(e);
         e = new Element( 16,  "S", 32.07 , 180, [212, 212,  64] );
         this.elements.push(e);        
-        e = new Element( 17, "Cl", 35.45 , 175, [  0, 179,  30] );
+        e = new Element( 17, "Cl", 35.45 , 175, [160, 255,  32] );
         this.elements.push(e);
-        e = new Element( 18, "Ar", 39.95 , 188, [187, 187, 187] );
+        e = new Element( 18, "Ar", 39.95 , 188, [170, 170, 170] );
         this.elements.push(e);
         e = new Element( 35, "Br", 79.904, 185, [172,  48,  32] );
         this.elements.push(e);        
-        e = new Element( 36, "Kr", 83.798, 202, [170, 170, 170] );
+        e = new Element( 36, "Kr", 83.798, 202, [153, 153, 153] );
         this.elements.push(e);
-        e = new Element( 53,  "I", 126.90, 198, [172,   0, 192] );
+        e = new Element( 53,  "I", 126.90, 198, [180,  60, 220] );
         this.elements.push(e);
-        e = new Element( 54, "Xe", 131.29, 216, [153, 153, 153] );
+        e = new Element( 54, "Xe", 131.29, 216, [136, 136, 136] );
         this.elements.push(e);
     }
     

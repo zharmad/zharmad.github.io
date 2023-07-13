@@ -1632,7 +1632,7 @@ class PhotonEmitterModule {
                 ctx.strokeStyle = PhotonEmitterModule.convert_wavelength_to_RGBcolour( this.LPhoton[i] );
                 ctx.moveTo( this.posXPhoton[i]/globalVars.distScale, 0 );
                 ctx.lineTo( this.posXPhoton[i]/globalVars.distScale, this.posYPhoton[i]/globalVars.distScale );
-                ctx.stroke();                
+                ctx.stroke();
                 //console.log( this.posYPhoton[i]/globalVars.distScale );
             }
         } else {
@@ -1644,9 +1644,9 @@ class PhotonEmitterModule {
                 ctx.lineTo( this.posXPhoton[i]/globalVars.distScale, this.posYPhoton[i]/globalVars.distScale );
                 //console.log( this.posYPhoton[i]/globalVars.distScale );
             }
+            ctx.stroke();            
+            //ctx.closePath();
         }       
-        //ctx.closePath();
-        ctx.stroke();
     }
 }
 

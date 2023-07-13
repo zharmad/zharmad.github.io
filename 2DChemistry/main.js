@@ -197,7 +197,7 @@ sliderPhotonEmitterIntensity.oninput = function() {
     Composition GUI buttons. Store as a linear array of objects that contain references to each HTML element for adjustments.
 */
 const arrCompositionGUI = [];
-for ( let i = 0; i < 7; i++ ) {
+for ( let i = 0; i < 10; i++ ) {
     const o = {} ;
     // GUI changes in the compositions tab for dynamically showing the number and type of components available for adjustment.
     o.div        = document.getElementById(`divInputComponent${i}`);
@@ -937,10 +937,11 @@ if ( controlsSidebar.widthOpen > 10 ) {
     // });
 
 // = = = Decorations Section = =
-//Show two random molecules from the initial preset library.
+// Show two random molecules from the initial preset library.
 const imageInfoTitlePrefix = document.getElementById("imageInfoTitlePrefix");
 const imageInfoTitleSuffix = document.getElementById("imageInfoTitleSuffix");
 var temp = globalVars.presets[ globalVars.initialPreset ].componentIDs;
+//var temp = molLib.get_defined_molecules();
 var i = randomInt( 0 , temp.length - 1);
 imageInfoTitlePrefix.src = molLib.get_entry( temp[i] ).imageSet['atom']['10'].image.src;
 var i = randomInt( 0 , temp.length - 1);

@@ -1032,7 +1032,7 @@ function get_new_preset_gas_reactions( args ) {
     var arrReactions = undefined;
     switch( type ) {
         case'none':
-        case 'noble gas':
+        case 'inert gases':
         case 'atmosphere':
             break;
         case 'nitrogen dioxide':

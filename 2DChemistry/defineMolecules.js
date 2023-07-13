@@ -184,11 +184,11 @@ class MoleculeLibrary {
         this.add_entry_atomic({ element: "Kr" });
         this.add_entry_atomic({ element: "Xe" });
         this.add_entry_atomic_radical({ element: "H",  DeltaH: 218, molColour: "rgb(251,236,93)" }); //Maize yellow. 
-        this.add_entry_atomic_radical({ element: "N",  DeltaH: 472, molColour: "rgb(0,0,127)" }); //Darker shade for radical
-        this.add_entry_atomic_radical({ element: "O",  DeltaH: 249, molColour: "rgb(127,0,0)" }); //Darker shade for radical
-        this.add_entry_atomic_radical({ element: "Cl", DeltaH: 121, molColour: "rgb(0,90,15)" }); //Darker shade for radical
+        this.add_entry_atomic_radical({ element: "N",  DeltaH: 472, molColour: "rgb(40,46,127)" }); //Darker shade for radical
+        this.add_entry_atomic_radical({ element: "O",  DeltaH: 249, molColour: "rgb(127,40,46)" }); //Darker shade for radical
+        this.add_entry_atomic_radical({ element: "Cl", DeltaH: 121, molColour: "rgb(80,128,16)" }); //Darker shade for radical
         this.add_entry_atomic_radical({ element: "Br", DeltaH: 112, molColour: "rgb(86,24,16)" }); //Darker shade for radical
-        this.add_entry_atomic_radical({ element: "I",  DeltaH: 107, molColour: "rgb(80,32,100)" }); //Darker shade for radical
+        this.add_entry_atomic_radical({ element: "I",  DeltaH: 107, molColour: "rgb(90,30,110)" }); //Darker shade for radical
 
         // Simple molecules 
         this.add_entry_diatomic( { element: "H", radius: 37.1 } );
@@ -205,7 +205,9 @@ class MoleculeLibrary {
         this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "H", n: 4, radius: 108.7, DeltaH:  -75 }); // CH₄
         this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "O", n: 2, radius: 116.2, DeltaH: -393 }); // CO₂
         this.add_entry({ name: "CO", atoms: ["O","C"], offsets: [[48.4,0.0],[-64.4,0.0]], DeltaH: -111 }); // CO
-        this.add_entry_molecule_radialsymmetric({ element1: "N", element2: "H", n: 3, radius: 101.2, DeltaH:  -46 }); // NH₃        
+        this.add_entry_molecule_radialsymmetric({ element1: "N", element2: "H", n: 3, radius: 101.2, DeltaH:  -46 }); // NH₃
+        this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "F", n: 4, radius: 131.5, DeltaH: -933 }); // CF₄
+        this.add_entry_molecule_radialsymmetric({ element1: "S", element2: "F", n: 6, radius: 156.1, DeltaH: -1220 }); // SF₆
         
         //Nitrogen dioxide equilibrium.
         this.add_entry({ name: "NO₂•", atoms: ["O","O","N"],
@@ -266,7 +268,7 @@ class MoleculeLibrary {
         // Hydrogen iodide equilibrium.
         this.add_entry({ name: "HI", atoms: ["H","I"],
             offsets: [ [159.6,0.0],[-1.3,0.0] ],
-            DeltaH: 26, molColour: "rgb(240,200,255)",
+            DeltaH: 26,
         });
         
         // Aqua regia volatile equilibria.
