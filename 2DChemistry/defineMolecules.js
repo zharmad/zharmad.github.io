@@ -264,17 +264,24 @@ class MoleculeLibrary {
             // DeltaH: 15
         // });
         // N₂O₅
+                
+        // volatile reaction processes of aqua regia.
+        // WIP. Needs the evolution of gases from HCl and HNO3 for full process.
+        // Nitryl chloride equilibrium. ClNO2(g) + NO(g) <----> NO2(g) + ClNO(g)
+        this.add_entry({ name: "ClNO", atoms: ["Cl","O","N"],
+            offsets: [[-63.6,-83.2],[128.4,98.2],[14.5,98.2]],
+            DeltaH: 53
+        }); //ClNO
+        this.add_entry({ name: "ClNO₂", atoms: ["Cl","O","O","N"],
+            offsets: [[-123.0,0.0],[110.0,109.2],[110.0,-109.2],[60.0,0.0]],
+            DeltaH: 13
+        }); //ClNO₂
         
         // Hydrogen iodide equilibrium.
         this.add_entry({ name: "HI", atoms: ["H","I"],
             offsets: [ [159.6,0.0],[-1.3,0.0] ],
             DeltaH: 26,
-        });
-        
-        // Aqua regia volatile equilibria.
-        // Needs Cl2 , NO2 , and N2O4 .
-        //this.add_entry_old( "ClNO", ["Cl","O","N"], [[14.2,109.9],[14.2,-109.9],[-32.3,0.0]] );
-        //this.add_entry_old( "ClNO₂", ["Cl","O","O","N"], [[14.2,109.9],[14.2,-109.9],[-32.3,0.0]] );
+        });       
 
         //Hydrogen-oxygen combustion.
         this.add_entry_old( "OH•", ["O","H"], [[5.8,0.0],[-91.2,0.0]] );

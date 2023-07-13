@@ -150,6 +150,17 @@ temp.componentIDs    = [ "H₂", "I₂", "HI", "H•", "I•" ];
 temp.componentRatios = [ 0.5, 0.5, 0.0 ];
 temp.componentHidePlot = [ "H•", "I•" ];
 
+temp = globalVars.presets[ "ClNO equilibrium (aqua regia)" ] = {};
+temp.distScale  = 20;
+temp.timeDelta    = 100;
+temp.worldTemperature = 200;
+temp.bDoHeatExchange = true;
+temp.densMolecules = 1.0;
+temp.numComponentsShow = 4;
+temp.componentIDs    = [  "ClNO₂", "NO•", "ClNO", "NO₂•" ];
+temp.componentRatios = [ 0.16, 0.16, 0.34, 0.34 ];
+temp.componentHidePlot = [ "ClNO₂", "ClNO" ];
+
 temp = globalVars.presets[ "ozone layer equilibrium" ] = {};
 temp.distScale = 30;
 temp.timeDelta = 100;
@@ -244,6 +255,27 @@ globalVars.presetReactions[ "nitrogen dioxide" ] = [
         productAngleRanges:  [ 360 ],
         EActivation: 0.2, lifetimeActivated: 2000,
     }
+]
+
+/*
+    Aqua regia volatile gas equilibria.
+    
+    Royal water" was the stuff chemists used to dissolve noble metals gold and platinum. There is a nice story about Hungarian chemist George de Hevesy dissolving two Nobel prize medals to evade confiscation by Nazi Germany. See Wikipedia entry: https://en.wikipedia.org/wiki/Aqua_regia
+    Nowadays, the reactions between Clorine, chloride and NOx species are studied in marine air quality as chlorine in all its forms affect the balance of these pollutants. There are important air-water interface reactions that are beyond the scope of this model, but it is worth knowing as 
+    
+    It begins with 3:1 mixture of HCl and HNO3, which will react and beign to form ClNO, ClNO2, and eventually just NO2.       
+        
+   For now, we will simply use one of the restricted textbook equilibrium cases.
+*/
+globalVars.presetReactions[ "ClNO equilibrium (aqua regia)" ] = [
+    {
+        reactantNames: [ "ClNO₂", "NO•" ], productNames: [ "ClNO", "NO₂•" ],
+        reactantAngles:      [   0, 180 ], 
+        reactantAngleRanges: [ 240, 180 ],
+        productAngles:       [ 120,   0 ],
+        productAngleRanges:  [ 120, 240 ],
+        EActivation: 1.5, 
+    } // DeltaH: -17 kJ/mol, Guessed Ea
 ]
 
 /*
@@ -812,23 +844,6 @@ globalVars.presetReactions[ "ozone layer with NOX" ] = [
     // Gaseous nitric acid not modelled as this pracitcally involves water droplets.
     //{  reactantNames: [ "N₂O₅", "H₂O" ], productNames: [ "HNO₃", "HNO₃" ] },
 ]
-
-
-/*
-    Aqua regia volatile gas equilibria.
-    
-    Royal water" was the stuff chemists used to dissolve noble metals gold and platinum. There is a nice story about Hungarian chemist George de Hevesy dissolving two Nobel prize medals to evade confiscation by Nazi Germany. See Wikipedia entry: https://en.wikipedia.org/wiki/Aqua_regia
-    Nowadays, the reactions between Clorine, chloride and NOx species are studied in marine air quality as chlorine in all its forms affect the balance of these pollutants. There are important air-water interface reactions that are beyond the scope of this model, but it is worth knowing as 
-    
-    It begins with 3:1 mixture of HCl and HNO3, which will react and beign to form ClNO, ClNO2, and eventually just NO2.
-       
-    0. Get DeltaH from ANL database as usual: https://atct.anl.gov/Thermochemical%20Data/version%201.118/
-        
-    1. We take the activation energies from...
-    
-    2. Some additional useful information of catalysed versions
-    
-*/
 
 
 /*

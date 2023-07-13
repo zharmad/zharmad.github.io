@@ -1058,7 +1058,12 @@ function get_new_preset_gas_reactions( args ) {
                 // // bDoForward: true, bDoReverse: true,
             // });  
             break;
-            
+
+        case 'ClNO equilibrium (aqua regia)':
+            arrReactions = globalVars.presetReactions[ "ClNO equilibrium (aqua regia)" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });        
+            break;                       
+                       
         case 'hydrogen iodide equilibrium':
             arrReactions = globalVars.presetReactions[ "hydrogen iodide equilibrium" ];
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });        
