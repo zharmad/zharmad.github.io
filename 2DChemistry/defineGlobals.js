@@ -1858,3 +1858,39 @@ globalVars.presetReactions[ "combustion - hydrocarbon (DRM22)" ] = [
         EActivation:  1.62,
     },
 ]
+
+// = = = Hack to convert all angles from degrees to radians on initial load. = = =
+for (let [key, arrReactions] of Object.entries(globalVars.presetReactions) ) {
+    let f = Math.PI/180.0;
+    arrReactions.forEach( (r) => {
+        
+        if ( undefined != r.reactantAngles ) {
+            for(var i=0;i<r.reactantAngles.length; i++) { r.reactantAngles[i] *= f; }
+        } else {
+            r.reactantAngles = Array( r.reactantNames.length ).fill( 0.0 );
+        }
+        if ( undefined != r.reactantAngleRanges ) {
+            for(var i=0;i<r.reactantAngleRanges.length; i++) { r.reactantAngleRanges[i] = Math.cos( r.reactantAngleRanges[i] * f/2 ); }
+        } else {
+            r.reactantAngleRanges = Array( r.reactantNames.length ).fill( -1.0 );
+        }
+        
+        if ( undefined != r.productAngles ) {
+            for(var i=0;i<r.productAngles.length; i++) { r.productAngles[i] *= f; }
+        } else {
+            r.productAngles = Array( r.productNames.length ).fill( 0.0 );
+        }
+        if ( undefined != r.productAngleRanges ) {
+            for(var i=0;i<r.productAngleRanges.length; i++) { r.productAngleRanges[i] = Math.cos( r.productAngleRanges[i] * f/2 ); }
+        } else {
+            r.productAngleRanges = Array( r.productNames.length ).fill( -1.0 );
+        }
+        
+        if ( undefined != r.angleReactionOffset ) {
+            r.angleReactionOffset *= f;
+        }
+    });
+    console.log( "Done;");
+}
+
+

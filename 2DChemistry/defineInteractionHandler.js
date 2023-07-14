@@ -91,27 +91,31 @@ class InteractionHandler {
             - scalars: EActivation, DeltaH,
         Optional arguments:
             - scalars: lifetimeActivated, angleReactionOffset.
-            - string: unitAngle
             - boolean: bDoForward, bDoReverse 
     */    
     parse_input_reaction( args ) {        
-            
-        //Initial settings and fil,ling out defaul definitions.
+        
+        //Sanity check
+        if ( undefined === args.reactantNames || undefined === args.productNames ) {
+            console.log( "ERROR: Creating reaction without correctly defined reactantNames or productNames arrays!" );
+            throw `Expecting: ${args.reactantNames} and ${args.productNames} `
+        }
+        //console.log( `${args.reactantNames} (${args.reactantNames.length}) <=> ${args.productNames} (${args.productNames.length})` );
+        
+        //Initial settings and filling out default definitions.
         var bDoForward = ( undefined === args.bDoForward ) ? true : args.bDoForward ;
         var bDoReverse = ( undefined === args.bDoReverse ) ? true : args.bDoReverse ;        
         if ( false == bDoForward && false == bDoReverse ) { return; } // Useful for bug-fixing? Do not throw.
-        
-        if ( undefined === args.unitAngle ) { args.unitAngle = 'degrees'; }
-        if ( undefined === args.reactantAngles ) { args.reactantAngles = Array( args.reactantNames.length ).fill( 0.0 ); }        
+                
+        //if ( undefined === args.unitAngle ) { args.unitAngle = 'radians'; }
+        if ( undefined === args.reactantAngles ) { args.reactantAngles = Array( args.reactantNames.length ).fill( 0.0 ); }
+        if ( undefined === args.reactantAngleRanges ) { args.reactantAngleRanges = Array( args.reactantNames.length ).fill( -1.0 ); }
         if ( undefined === args.productAngles ) { args.productAngles = Array( args.productNames.length ).fill( 0.0 ); }
-        if ( undefined === args.reactantAngleRanges ) { args.reactantAngleRanges = Array( args.reactantNames.length ).fill( 360.0 ); }        
-        if ( undefined === args.productAngleRanges ) { args.productAngleRanges = Array( args.productNames.length ).fill( 360.0 ); }
-        
+        if ( undefined === args.productAngleRanges ) { args.productAngleRanges = Array( args.productNames.length ).fill( -1.0 ); }
+
         // Linking to the molecular library for creating products during the simulation.
         args.moleculeLibrary = this.moleculeLibrary ;
         
-        this.convert_angle_units( args );
-
         // Grab the moltype entries themselves here and add up the heats of formation to determine DeltaH
         args.reactants = []; const nAtomsReac = [];
         var totDeltaH = 0.0; var entry = "";
@@ -207,19 +211,7 @@ class InteractionHandler {
                 break;
         }
         //console.log("...Added interaction between.");
-    }
-    
-    convert_angle_units( args ) {
-        if ( 'degrees' === args.unitAngle ) {
-            const f = Math.PI/180.0;
-            for(var i=0;i<args.reactantAngles.length; i++) { args.reactantAngles[i] *= f; }
-            for(var i=0;i<args.reactantAngleRanges.length; i++) { args.reactantAngleRanges[i] = Math.cos( args.reactantAngleRanges[i] * f/2 ); }
-            for(var i=0;i<args.productAngles.length; i++) { args.productAngles[i] *= f; }
-            for(var i=0;i<args.productAngleRanges.length; i++) { args.productAngleRanges[i] = Math.cos( args.productAngleRanges[i] * f/2 ); }
-            if( undefined != args.angleReactionOffset ) { args.angleReactionOffset *= f; }
-            args.unitAngle == 'radians';
-        }
-    }
+    }    
     
     swap_reactant_and_products( args ) {       
         let temp = undefined;
@@ -1066,7 +1058,7 @@ function get_new_preset_gas_reactions( args ) {
                        
         case 'hydrogen iodide equilibrium':
             arrReactions = globalVars.presetReactions[ "hydrogen iodide equilibrium" ];
-            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });        
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });            
             break;
             
         case 'ozone layer equilibrium':
