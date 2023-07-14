@@ -47,55 +47,97 @@ class MoleculeLibrary {
         this.tableOfElements.rescale_radii( 0.75 );
     }
 
-    add_entry_old( name, atoms, offsets, molColour ) {    
-        const args = { name, atoms, offsets };
-        if ( undefined != molColour ) { args.molColour = molColour };        
-        args.collisionRadiiFactor = this.collisionRadiiFactor;
-        args.tableOfElements = this.tableOfElements;        
-        this.entries[name] = new MoleculeType( args );
-        this.numEntries++;        
-    }
+    // add_entry_old( name, atoms, offsets, molColour ) {    
+        // const args = { name, atoms, offsets };
+        // if ( undefined != molColour ) { args.molColour = molColour };        
+        // args.collisionRadiiFactor = this.collisionRadiiFactor;
+        // args.tableOfElements = this.tableOfElements;        
+        // this.entries[name] = new MoleculeType( args );
+        // this.numEntries++;        
+    // }
     
     add_entry( args ) {
         const name = args.name;
         args.collisionRadiiFactor = this.collisionRadiiFactor;
-        args.tableOfElements = this.tableOfElements;        
+        args.tableOfElements = this.tableOfElements;
+        if ( undefined === args.DeltaH ) { args.DeltaH = undefined; }
         this.entries[ name ] = new MoleculeType( args );
         this.numEntries++;
     }
     
     add_entry_atomic( args ) {
         const e = args.element;
-        args.name = e; args.atoms = [ e ]; args.offsets = [ [0.0,0.0] ];
-        if ( undefined === args.DeltaH ) { args.DeltaH = 0.0; }
-        this.add_entry( args );
-    }
-
-    add_entry_atomic_radical( args ) {
-        const e = args.element;
-        args.name = e+"•"; args.atoms = [ e ]; args.offsets = [ [0.0,0.0] ];
-        if ( undefined === args.DeltaH ) { args.DeltaH = 0.0; }
-        this.add_entry( args );
-    }
-
-    add_entry_diatomic( args ) {
-        const e = args.element, r = args.radius;
-        args.name = e+"₂"; args.atoms = [ e,e ] ; args.offsets = [ [r,0.0],[-r,0.0] ];
-        if ( undefined === args.DeltaH ) { args.DeltaH = 0.0; }
+        if ( undefined === args.name ) {
+            args.name = e;
+            if ( undefined != args.radical ) { args.name+="•"; }
+        };
+        args.atoms = [ e ]; args.offsets = [ [0.0,0.0] ];
         this.add_entry( args );
     }
     
+    add_entry_diatomic( args ) {
+        const e = args.element, r = args.radius;
+        args.name = e+"₂"; args.atoms = [ e,e ] ; args.offsets = [ [r,0.0],[-r,0.0] ];
+        if ( undefined != args.radical ) { args.name+="•"; }
+        this.add_entry( args );
+    }
+    
+    // Order from -X to +X.
+    add_entry_molecule_linear( args ) {
+        const a = args.atoms, r = args.radii, n = args.atoms.length;
+        const bDoName = ( undefined === args.name );
+        const factor = ( undefined === args.bReverse ) ? 1.0 : -1.0 ;
+        if ( bDoName ) { args.name = a[0]; }
+        let x = 0.0, y = 0.0;
+        args.offsets = [ [x,y] ];
+        for ( let i=1; i<n; i++ ) {
+            if ( bDoName ) { args.name += a[i]; }
+            x += r[i-1] * factor ;
+            args.offsets.push( [x,y] );
+        }
+        if ( bDoName && undefined != args.radical ) { args.name+="•"; }
+        this.add_entry( args );
+    }
+    
+    // Defined either as left ( core atom -X ) or right (core atom +X).
+    // Due to drawing orders, the central atom is places last.
+    add_entry_molecule_triangle( args ) {
+        const at = args.atoms, r = args.radii, a = args.angle * Math.PI/180.0 ;
+        let xA, yA;
+        switch ( args.align ) {            
+            case 1:
+                xA = Math.cos( a ); yA = -1*Math.sin( a );
+                args.offsets = [ [r[0],0.0], [r[1]*xA,r[1]*y[A]], [0.0,0.0] ];
+                break;
+            case 2:
+                xA = Math.cos( a ); yA = -1*Math.sin( a );
+                args.offsets = [ [ r[0]*xA, r[0]*yA ], [ r[1],0.0 ], [0.0,0.0] ];            
+                break;
+            case 3:
+                xA = Math.cos( 0.5*a ); yA = Math.sin( 0.5*a );
+                args.offsets = [ [ -r[0]*xA, -r[0]*yA ], [ -r[1]*xA, r[1]*yA ], [0.0,0.0] ];
+                break;
+            case -3:
+                xA = Math.cos( 0.5*a ); yA = Math.sin( 0.5*a );
+                args.offsets = [ [  r[0]*xA, -r[0]*yA ], [  r[1]*xA, r[1]*yA ], [0.0,0.0] ];            
+                break;
+            default:
+                throw `ERROR in creating triangle molecule ${args.name}: unknown alignment argument!`;
+        }
+        this.add_entry( args );
+    }
+
     add_entry_molecule_radialsymmetric( args ) {
         const e1 = args.element1, e2 = args.element2, r = args.radius, n = args.n;
         const dictSubscript = { 2: "₂", 3: "₃", 4:"₄", 5:"₅", 6:"₆" };
-        args.name = e1 + e2 + dictSubscript[n];
+        if ( undefined === args.name ) { args.name = e1 + e2 + dictSubscript[n]; };
         args.atoms = []; args.offsets = [];
         for ( let i=0; i<n; i++ ) {
             args.atoms.push( e2 );
             args.offsets.push( [ r * Math.cos( 2.0 * Math.PI * i / n ), r * Math.sin( 2.0 * Math.PI * i / n ) ] );
         }
         args.atoms.push( e1 ); args.offsets.push( [0.0,0.0] );
-        if ( undefined === args.DeltaH ) { args.DeltaH = 0.0; }
+        if ( undefined === args.DeltaH ) { args.DeltaH = undefined; } // Force use of DeltaH if energy calculations are required.
         this.add_entry( args );
     }
     
@@ -174,42 +216,41 @@ class MoleculeLibrary {
         
             Main properties to be defined are: name, atoms, offsets, molColour, DeltaH
             
-            Diatomic elements default to horizontal orientation with [+X,0] and [-X,0].            
+            Diatomic elements default to horizontal orientation with [+X,0] and [-X,0].\
+            The current orientational convention is to have:
+            1. exterior oxygen(s) aligned with +X.
+            1. exterior hydrogens(s) aligned with -X.
         */
         
         // Single atoms
-        this.add_entry_atomic({ element: "He" });
-        this.add_entry_atomic({ element: "Ne" });
-        this.add_entry_atomic({ element: "Ar" });
-        this.add_entry_atomic({ element: "Kr" });
-        this.add_entry_atomic({ element: "Xe" });
-        this.add_entry_atomic_radical({ element: "H",  DeltaH: 218, molColour: "rgb(251,236,93)" }); //Maize yellow. 
-        this.add_entry_atomic_radical({ element: "N",  DeltaH: 472, molColour: "rgb(40,46,127)" }); //Darker shade for radical
-        this.add_entry_atomic_radical({ element: "O",  DeltaH: 249, molColour: "rgb(127,40,46)" }); //Darker shade for radical
-        this.add_entry_atomic_radical({ element: "Cl", DeltaH: 121, molColour: "rgb(80,128,16)" }); //Darker shade for radical
-        this.add_entry_atomic_radical({ element: "Br", DeltaH: 112, molColour: "rgb(86,24,16)" }); //Darker shade for radical
-        this.add_entry_atomic_radical({ element: "I",  DeltaH: 107, molColour: "rgb(90,30,110)" }); //Darker shade for radical
+        this.add_entry_atomic({ element: "He", DeltaH: 0 });
+        this.add_entry_atomic({ element: "Ne", DeltaH: 0 });
+        this.add_entry_atomic({ element: "Ar", DeltaH: 0 });
+        this.add_entry_atomic({ element: "Kr", DeltaH: 0 });
+        this.add_entry_atomic({ element: "Xe", DeltaH: 0 });
+        this.add_entry_atomic({ element: "H", radical:1, DeltaH: 218, molColour: "rgb(251,236,93)" }); //Maize yellow. 
+        this.add_entry_atomic({ element: "N", radical:1, DeltaH: 472, molColour: "rgb(40,46,127)" }); //Darker shade for radical
+        this.add_entry_atomic({ element: "O", radical:1, DeltaH: 249, molColour: "rgb(127,40,46)" }); //Darker shade for radical
+        this.add_entry_atomic({ element: "Cl", radical:1, DeltaH: 121, molColour: "rgb(80,128,16)" }); //Darker shade for radical
+        this.add_entry_atomic({ element: "Br", radical:1, DeltaH: 112, molColour: "rgb(86,24,16)" }); //Darker shade for radical
+        this.add_entry_atomic({ element: "I",  radical:1, DeltaH: 107, molColour: "rgb(90,30,110)" }); //Darker shade for radical
 
         // Simple molecules 
-        this.add_entry_diatomic( { element: "H", radius: 37.1 } );
-        this.add_entry_diatomic( { element: "N", radius: 54.9 } );
-        this.add_entry_diatomic( { element: "O", radius: 60.4 } );        
-        this.add_entry_diatomic( { element: "Cl", radius: 99.4 } );
-        this.add_entry_diatomic( { element: "Br", DeltaH: 31, radius: 114.1 } ); //liquid at room temperature so deltaH not zero.
-        this.add_entry_diatomic( { element: "I", DeltaH: 62, radius: 133.3 } ); 
+        this.add_entry_diatomic( { element:  "H", radius:  37.1, DeltaH: 0 });
+        this.add_entry_diatomic( { element:  "N", radius:  54.9, DeltaH: 0 });
+        this.add_entry_diatomic( { element:  "O", radius:  60.4, DeltaH: 0 });
+        this.add_entry_diatomic( { element: "Cl", radius:  99.4, DeltaH: 0 });
+        this.add_entry_diatomic( { element: "Br", radius: 114.1, DeltaH: 31 }); //liquid at room temperature so DeltaH not zero.
+        this.add_entry_diatomic( { element:  "I", radius: 133.3, DeltaH: 62 }); 
         
-        this.add_entry({ name: "H₂O", atoms: ["H","H","O"],
-            offsets: [ [-52.0,75.7],[-52.0,-75.7],[6.6,0.0] ],
-            DeltaH: -242, molColour: "#AFE4DE",            
-        });
-        this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "H", n: 4, radius: 108.7, DeltaH:  -75 }); // CH₄
-        this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "O", n: 2, radius: 116.2, DeltaH: -393 }); // CO₂
-        this.add_entry({ name: "CO", atoms: ["O","C"], offsets: [[48.4,0.0],[-64.4,0.0]], DeltaH: -111 }); // CO
-        this.add_entry_molecule_radialsymmetric({ element1: "N", element2: "H", n: 3, radius: 101.2, DeltaH:  -46 }); // NH₃
-        this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "F", n: 4, radius: 131.5, DeltaH: -933 }); // CF₄
+        this.add_entry_molecule_triangle({ name: "H₂O", atoms: ["H","H","O"], radii: [95.8,95.8], angle:104.5, align: 3,
+            DeltaH: -242, molColour: "#AFE4DE",
+        }); // water!
+        this.add_entry_molecule_radialsymmetric({ element1: "N", element2: "H", n: 3, radius: 101.2, DeltaH:   -46 }); // NH₃
+        this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "F", n: 4, radius: 131.5, DeltaH:  -933 }); // CF₄
         this.add_entry_molecule_radialsymmetric({ element1: "S", element2: "F", n: 6, radius: 156.1, DeltaH: -1220 }); // SF₆
         
-        //Nitrogen dioxide equilibrium.
+        //Nitrogen dioxide equilibrium.        
         this.add_entry({ name: "NO₂•", atoms: ["O","O","N"],
             offsets: [[14.2,109.9],[14.2,-109.9],[-32.3,0.0]],
             DeltaH: 34, molColour: "rgb(180,72,26)"
@@ -220,45 +261,26 @@ class MoleculeLibrary {
         }); // N₂O₄ , colourless gas
 
         //Ozone layer equilibrium with Cl and NOx species. https://en.wikipedia.org/wiki/Ozone_layer
-        // N2O3 = 86, N2O5 = 15             
-        this.add_entry({ name: "O₃", atoms: ["O","O","O"],
-            offsets: [[22.3,108.9],[22.3,-108.9],[-44.7,0]],
+        // Ignored molecules: N2O3 = 86, N2O5 = 15
+        this.add_entry_molecule_triangle({ name: "O₃", atoms: ["O","O","O"], radii: [127.8,127.8], angle: 116.8, align: -3,
             DeltaH: 142, molColour: "rgb(255,127,127)",
         }); // O₃ , use a lighter red.
-        
-        this.add_entry({ name: "ClO•", atoms: ["Cl","O"],
-            offsets: [[-48.8,0.0],[108.2,0.0]],
-            DeltaH: 102
-        }); // ClO, active species for ozone depletion.        
-        this.add_entry({ name: "ClOO•", atoms: ["Cl","O","O"],
-            offsets: [[-71.0,-89.3],[18.4,99.0],[138.9,99.0]],
-            DeltaH: 98
-        });  //Take geometry from Abbot and Schaefer (2018) DOI: 10.1021/acs.jpca.8b00394
-        // alternative offsets: [[149.0,83.1],[97.3,-25.8], [-111.1,-25.8 ] ],
+
+        this.add_entry_molecule_linear({ atoms: ["Cl","O"], radical:1, radii: [ 157.0 ], DeltaH: 102 }); // ClO•, active species 1.
+        this.add_entry_molecule_triangle( { name: "ClOO•", atoms: ["Cl","O","O"], radii: [208.4,120.6], angle: 115.4, align: 2, DeltaH: 98 });
+        // ClOO•, take geometry from Abbot and Schaefer (2018) DOI: 10.1021/acs.jpca.8b00394                
+            
         // Intermediate products. Use as a basis Nikolaison et al. (1994). DOI: 10.1021/j100052a027        
         this.add_entry({ name: "ClOOCl", atoms: ["Cl","O","O","Cl"],
             offsets: [[-129.8,-160.1],[-71.3,0.0],[71.3,0.0],[129.8,160.1] ],
             DeltaH: 128
         });
         // Transient side product.
-        this.add_entry({ name: "Cl₂O", atoms: ["Cl","Cl","O"],
-            offsets: [[-17.7,-139.6],[-17.7,139.6],[78.5,0.0]],
-            DeltaH: 81
-        }); 
-        
-        
-        this.add_entry({ name: "N₂O", atoms: ["O","N","N"],
-            offsets: [ [111.2,0.0],[-120.0,0.0],[-7.2,0.0] ],
-            DeltaH: 83
-        }); // N₂O
-        this.add_entry({ name: "NO•", atoms: ["O","N"],
-            offsets: [[53.9,0.0],[-61.5,0.0]],
-            DeltaH: 91
-        }); // NO
-        this.add_entry({ name: "NO₃•", atoms: ["O","O","O","N"],
-            offsets: [[61.9,107.2],[61.9,-107.2],[-123.8,0.0],[0,0.0]],
-            DeltaH: 74
-        }); // NO₃•
+        this.add_entry_molecule_triangle( { name: "Cl₂O", atoms: ["Cl","Cl","O"], radii: [169.6,169.6], angle: 110.9, align: 3, DeltaH: 81 });
+                
+        this.add_entry_molecule_linear({ name: "N₂O", atoms: ["N","N","O"], radii: [ 112.8, 118.4 ], DeltaH: 83 }); // N₂O 
+        this.add_entry_molecule_linear({ name: "NO•", atoms: ["N","O"], radii: [ 115.4 ], DeltaH: 91 }); // NO 
+        this.add_entry_molecule_radialsymmetric({ name: "NO₃•", element1: "N", element2: "O", n: 3, radius: 123.8, DeltaH: 74 }); // NO₃•
         // this.add_entry({ name: "N₂O₅", atoms: ["O","O","O","N","O","O","N"],
             // offsets: [ ],
             // DeltaH: 15
@@ -279,31 +301,70 @@ class MoleculeLibrary {
         
         // Hydrogen iodide equilibrium.
         this.add_entry({ name: "HI", atoms: ["H","I"],
-            offsets: [ [159.6,0.0],[-1.3,0.0] ],
+            offsets: [[159.6,0.0],[-1.3,0.0]],
             DeltaH: 26,
-        });       
+        });
 
         //Hydrogen-oxygen combustion.
-        this.add_entry_old( "OH•", ["O","H"], [[5.8,0.0],[-91.2,0.0]] );
-        this.set_molecule_colour("OH•", "rgb(253,118,47)");
+        this.add_entry_molecule_linear({ atoms: ["H","O"], radical:1, radii: [ 97.0 ], DeltaH: 37, molColour: "rgb(253,118,47)" }); // HO•
+        this.add_entry({ name: "H₂O₂", atoms: ["H","H","O","O"],
+            offsets: [[81.7,94.7],[-81.7,-94.7],[73.8,0.0],[-73.8,0.0]],
+            DeltaH: -135,
+        });
+        this.add_entry_molecule_triangle({ name: "HO₂•", atoms: ["H","O","O"], radii: [97.1,133.1], angle: 104.3, align: 2, DeltaH: 12,
+            molColour: "rgb(254,74,31)"
+        }); // HO₂• radical; an intermediate.
 
-        this.add_entry_old( "H₂O₂", ["H","H","O","O"], [[81.7,94.7],[-81.7,-94.7],[73.8,0.0],[-73.8,0.0]] );
-        this.add_entry_old( "HO₂•", ["H","O","O"], [[-87.9,-91.1],[-63.9,2.9],[69.4,2.9]] );        
-        this.set_molecule_colour("HO₂•", "rgb(254,74,31)");
-
-        // Methane-ethane combustion
-        this.add_entry_old( "C₂H₆", ["H","H","H","H","H","H","C","C"],
-                                [[76.8,109.1],[185.9,0.0],[76.8,-109.1],[-76.8,-109.1],[-185.9,0.0],[-76.8,109.1],
-                                [76.8,0.0],[-76.8,0.0]] );
-        this.add_entry_old( "C₂H₄", ["H","H","H","H","C","C"],[[123.2,92.9],[123.2,-92.9],[-123.2,-92.9],[-123.2,92.9],[67.0,0.0],[-67.0,0.0]] );
-        this.add_entry_old( "C₂H₂", ["H","H","C","C"], [[166.4,0.0],[-166.4,0.0],[60.1,0.0],[-60.1,0.0]] );
-        this.add_entry_old( "CH₃•", ["H","H","H","C"], [[107.9,0.0],[-54.0,93.4],[-54.0,-93.4],[0.0,0.0]] );
-        // Methanol
-        this.add_entry_old( "CH₃OH", ["H","H","H","H","O","C"], [[-73.3,-112.4],[-182.9,-2.8],[-73.3,106.8],[100.3,87.7],[69.4,-2.8],[-73.3,-2.8]] );
-        // Formaldehyde, not hydroxycarbene.
-        this.add_entry_old( "CH₂O", ["H","H","O","C"], [[-119.0,94.3],[-119.0,-94.3],[60.2,0.0],[-60.3,0.0]] );
+        // = = Methane-ethane combustion system. = =
+        this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "O", n: 2, radius: 116.2, DeltaH: -393 }); // CO₂
+        this.add_entry({ name: "CO", atoms: ["O","C"], offsets: [[48.4,0.0],[-64.4,0.0]], DeltaH: -111 }); // CO
+        
+        this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "H", n: 4, radius: 108.7, DeltaH: -75 }); // CH₄
+        this.add_entry_molecule_radialsymmetric({ name: "CH₃•", element1: "C", element2: "H", n: 3, radius: 107.9, DeltaH: 146 }); // CH₃•
+        this.add_entry_molecule_triangle({ name: "CH₂•", atoms: ["H","H","C"], radii: [108.5,108.5], angle: 135.5, align: 3, DeltaH: 392 }); // CH₂• : methylene double radical. Use ground state only (triplet state), or T-CH₂• Always assume immediate conversion of all singlet states into triplet states during reactions.
+        // this.add_entry_molecule_linear({ name: "CH•", atoms: ["H","C"], radii: [ 112.0 ], DeltaH: 596 }); // CH•
+        
+        this.add_entry({ name: "CH₃OH", atoms: ["H","H","H","O","H","C"],
+            offsets: [[-37.3,-103.1],[-37.3,103.1],[-109.6,0.0],[142.7,0.0],[173.6,90.5],[0.0,0.0]],
+            DeltaH: -201,
+        }); // CH₃OH : Methanol. Not modelled within simplified Grimech but can be a useful source.        
+        this.add_entry({ name: "CH₃O•", atoms: ["H","H","H","O","C"],
+            offsets: [[-40.4,-103.6],[-40.4,103.6],[-111.2,0.0],[140.5,0.0],[0.0,0.0]],
+            DeltaH: 22,
+        }); // CH₃O• : Methxy radical. Interconverts with the next radical below. Assume instant conversion as necessary.
+        // this.add_entry({ name: "CH₂OH•", atoms: ["H","H","O","H","C"],
+            // offsets: [[-47.5,-96.7],[-47.5,96.7],[136.7,0.0],[168.0,140.5],[0.0,0.0]],
+            // DeltaH: -17,
+        // }); // CH₂OH• : Hydroxymethyl radical.        
+        this.add_entry({ name: "CH₂O", atoms: ["H","H","O","C"],
+            offsets: [[-58.8,-94.3],[-58.8,94.3],[120.5,0.0],[0.0,0.0]],
+            DeltaH: -109,
+        }); // CH₂O Formaldehyde
+        this.add_entry_molecule_triangle({ name: "HCO•", atoms: ["H","O","C"], radii: [108.0,119.8], angle: 119.5, align: 2, DeltaH: 42 }); // HCO•
+                
+        this.add_entry({ name: "C₂H₆", atoms: ["H","H","H","C","H","H","H","C"],
+            offsets: [[-76.8,-109.1],[-185.9,0.0],[-76.8,109.1],[-76.8,0.0],[76.8,109.1],[185.9,0.0],[76.8,-109.1],[76.8,0.0]],
+            DeltaH: -84,
+        }); // ethane
+        this.add_entry({ name: "C₂H₅•", atoms: ["H","H","H","C","H","H","C"],
+            offsets: [[-54.5,-98.9],[-54.5,98.9],[-111.0,0.0],[0.0,0.0],[199.5,93.1],[199.5,-93.1],[142.3,0.0]],
+            DeltaH: 120,
+        }); // ethyl radical. MP2/6-31G*
+        this.add_entry({ name: "C₂H₄", atoms: ["H","H","C","H","H","C"],
+            offsets: [[-123.2,-92.9],[-123.2,92.9],[-67.0,0.0],[123.2,92.9],[123.2,-92.9],[67.0,0.0]],
+            DeltaH: 53,
+        }); // ethene
+        this.add_entry({ name: "C₂H₃•", atoms: ["H","H","C","H","C"],
+            offsets: [[-56.7,-92.5],[-56.7,92.5],[0.0,0.0],[211.0,73.2],[131.6,0.0]],
+            DeltaH: 297,
+        }); // vinyl radical.
+        this.add_entry({ name: "C₂H₂", atoms: ["H","C","H","C"],
+            offsets: [[-166.4,0.0],[-60.1,0.0],[166.4,0.0],[60.1,0.0]],
+            DeltaH: 228,
+        }); // ethyne
         // Ketene.
-        this.add_entry_old( "CH₂CO", ["H","H","O","C","C"], [[-181.4,-94.5],[-181.4,94.5],[118.2,0.0],[-129.3,0.0],[2.2,0.0]] );       
+        //this.add_entry_old( "CH₂CO", ["H","H","C","O","C"], [[-181.4,-94.5],[-181.4,94.5],[-129.3,0.0],[118.2,0.0],[2.2,0.0]] );       
+
 
         /*
             Hydrogen sulfide oxidation and direct thermal decomposition. 
@@ -431,6 +492,8 @@ class MoleculeType {
             
         }
         
+        // Always set COM to zero when creating a molecule as an assumption of rigid body dynamics.
+        this.zero_com();        
         // Make monoatomic molecules have a null rotational kinetic energy.
         if ( 0.0 == this.rotI ) { this.rotI = null; }
         
@@ -457,6 +520,14 @@ class MoleculeType {
             }
         }
     }      
+
+    // Zero the Moleculetype's own center of mass. For use when the definition is lazy.
+    zero_com() {
+        const pCOM = new Vector2D( 0, 0 );
+        for ( let i = 0 ; i < this.numAtoms ; i++ ) { pCOM.sincr( this.elements[i].mass, this.atomOffsets[i] ); }
+        pCOM.scale( 1.0/this.mass );
+        for ( let i = 0 ; i < this.numAtoms ; i++ ) { this.atomOffsets[i].decr( pCOM ); }
+    }
 
     get_DeltaH() { return this.DeltaH; }
     get_size() { return this.size; }

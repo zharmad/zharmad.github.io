@@ -1094,19 +1094,15 @@ function get_new_preset_gas_reactions( args ) {
             break;
 
         case 'combustion - H2 and O2 advanced':
+            arrReactions = globalVars.presetReactions[ "combustion - H2 and O2 basic" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
             arrReactions = globalVars.presetReactions[ "combustion - H2 and O2 advanced" ];
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
-            //arrReactions = globalVars.presetReactions[ "ozone layer equilibrium" ];
-            //arrReactions.forEach( r => { gr.parse_input_reaction( r ); });                        
-            arrReactions = globalVars.presetReactions[ "combustion - H2 and O2 basic" ];
-            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });            
             break;
             
         case 'combustion - hydrocarbon':
-            /*
-                This is a simplified version of the full methane/air combustion mechanism. THe most famous model is GRIMech 3.0 (https://www.cerfacs.fr/cantera/mechanisms/meth.php). We'll want to take the Lu and Law reduced version that do not involve nitrogen species. This also embeds the hydrogen oxygen combustion mechanisms above alongside peroxide pathways.                
-            */
-        
+            arrReactions = globalVars.presetReactions[ "combustion - hydrocarbon (DRM22)" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });            
             break;
             
         case 'custom':
