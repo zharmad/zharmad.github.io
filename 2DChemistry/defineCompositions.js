@@ -65,6 +65,10 @@ class GasComposition {
         this.nTotal += ( val - temp ) ;
     }
     
+    add_components_via_globals() {
+        this.add_components_via_array( globalVars.componentIDs, globalVars.componentRatios ); 
+    }
+    
     add_components_via_array(arrIDs, arrRatios) {
         const n = arrIDs.length;
         //if ( n == undefined arrRatios.length ) {throw "ERROR: The  arrays to add_components_via_array() do not have the same length!"; }

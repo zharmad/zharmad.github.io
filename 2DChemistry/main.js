@@ -35,6 +35,31 @@ function update_slider_values( slider, args ) {
     if ( undefined != p.step ) { slider.step = p.step; }
 }
 
+function update_slider_value_by_param( param, v ) {
+    switch( param ) {
+        case "temperature":
+            sliderWorldTemperature.value = v;
+            textFieldWorldTemperature.innerHTML = v;
+            break;
+        case "distScale":
+            sliderDistScale.value = v;
+            textFieldDistScale.innerHTML = v;
+            break;
+        case "densMolecules":
+            sliderDensMolecules.value = v;
+            textFieldDensMolecules.innerHTML = v;
+            break;
+        case "timeDelta":
+            sliderTimeDelta.value = v;
+            textFieldTimeDelta.innerHTML = v;
+            break;
+        case "worldAreaPercentage":
+            sliderWorldAreaPercentage = v;
+            textFieldWorldAreaPercentage.innerHTML = v;
+            break;
+    }
+}
+
 // = = Initial Composition GUI = =
 const sliderDistScale    = document.getElementById("sliderDistScale");
 const textFieldDistScale = document.getElementById("textFieldDistScale");
@@ -663,6 +688,9 @@ function overwrite_global_values( strType ) {
     sliderTimeDelta.oninput();
     toggleDoHeatExchange.checked = p.bDoHeatExchange;
     toggleDoHeatExchange.oninput();
+    
+    globalVars.componentIDs    = p.componentIDs;
+    globalVars.componentRatios = p.componentRatios;
 }
 
 function generate_preset_simulation( strType ) {
@@ -681,7 +709,8 @@ function generate_preset_simulation( strType ) {
     
     // Create the gas composition here.
     const gc = new GasComposition('ratio');
-    gc.add_components_via_array( p.componentIDs, p.componentRatios ) ;
+    // gc.add_components_via_array( p.componentIDs, p.componentRatios ) ;
+    gc.add_components_via_globals() ;
     gc.normalise();
     sim.set_gas_composition(gc);       
     

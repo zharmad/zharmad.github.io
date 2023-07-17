@@ -61,12 +61,16 @@ class InteractionHandler {
             console.log( `= = Defined molecule species: ${name}` );            
             if ( this.dictSelf[name].length > 0 ) {
                 console.log( `...Self reaction entry for ${name}:` );
-                this.dictSelf[name].debug();
+                this.dictSelf[name].forEach( reaction => {
+                    reaction.debug();
+                });
             }
             for ( const k in this.dict[name] ) {
                 if ( this.dict[k][name].length > 0 ) {
                     console.log( `...Collision entry between ${name} and ${k}` );
-                    this.dict[k][name].debug();
+                    this.dict[k][name].forEach( reaction => {
+                        reaction.debug();
+                    });
                 }
             }
         });

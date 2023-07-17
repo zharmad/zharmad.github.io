@@ -84,7 +84,19 @@ function initial_setup_with_html_vars( mapUserHTMLVars ) {
     // Overwrite these values from user HTML given tags
     for (const key in globalVars) {
         let s = mapUserHTMLVars.get(key);
-        if ( undefined != s ) { globalVars[key] = s; }    
+        if ( undefined != s ) {            
+            switch (key) {
+                case "componentIDs":
+                case "componentRatios":
+                    globalVars[key] = s.split(',');
+                    break;
+                default:
+                    globalVars[key] = s;
+                    // Need to also update slider values as well.
+                    update_slider_value_by_param( key, s );
+                    break;
+            }
+        }    
     }
 }
 
@@ -434,8 +446,7 @@ globalVars.presetReactions[ "ozone equilibrium core" ] = [
 /*
     Advanced: Involvement of Cl radical species in ozone layer equilibrium. 
     
-    Mechanisms in theis model are based on p.186 of Green Chemistry, Chapter 3.3 (Wilmouth et al., 2018). This focuses on polar ozone layer at high stratephoeres, where NOX species are largely absent.
-    
+    Mechanisms in theis model are based on p.186 of Green Chemistry, Chapter 3.3 (Wilmouth et al., 2018). This focuses on polar ozone layer at high stratephoeres, where NOX species are largely absent. A decent open acces alternative is given by` Clarmann (2014) DOI: 10.1016/S0187-6236(13)71086-5
     Relatively inconsequential Cl₂ path is included for completeness, while BrO contributions are not included.7
     Cl - NOX interactions that happen in the lower stratosphere are currently ignored. Bannan et al. (2015) DOI: 10.1002/2014JD022629
     
