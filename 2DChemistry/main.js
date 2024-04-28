@@ -127,6 +127,15 @@ toggleDoHeatExchange.oninput = function () {
     sim.set_bool_heat_exchange( toggleDoHeatExchange.checked );
 }
 
+const toggleDoGravity = document.getElementById("toggleDoGravity");
+toggleDoGravity.checked = globalVars.bWorldGravity;
+//console.log( togglePresetsOverwriteAllParams.checked );
+toggleDoGravity.oninput = function () {
+    globalVars.bWorldGravity = toggleDoGravity.checked;
+    sim.set_bool_world_gravity( toggleDoGravity.checked );
+}
+
+
 var sliderTimeDelta = document.getElementById("sliderTimeDelta");
 var textFieldTimeDelta = document.getElementById("textFieldTimeDelta");
 update_slider_values( sliderTimeDelta, { value: globalVars.timeDelta, params: globalVars.timeDeltaParams });
@@ -688,6 +697,8 @@ function overwrite_global_values( strType ) {
     sliderTimeDelta.oninput();
     toggleDoHeatExchange.checked = p.bDoHeatExchange;
     toggleDoHeatExchange.oninput();
+    toggleDoGravity.checked = p.bWorldGravity;
+    toggleDoGravity.oninput();    
     
     globalVars.componentIDs    = p.componentIDs;
     globalVars.componentRatios = p.componentRatios;
@@ -705,7 +716,6 @@ function generate_preset_simulation( strType ) {
     if( globalVars.bPresetsOverwriteParams ) {
         overwrite_global_values( strType );
     }
-
     
     // Create the gas composition here.
     const gc = new GasComposition('ratio');

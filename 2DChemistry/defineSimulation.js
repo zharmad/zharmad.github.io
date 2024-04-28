@@ -27,6 +27,8 @@ class Simulation {
         this.temperature = 300;
         this.bSet = false;
         this.bHeatExchange = true ;
+        this.bWorldGravity = false ;
+        this.world_gravity = new Vector2D( 0, 9.81e-6 ); // Hardcode gravity for now at 10^12 g. Positive y is down for the canvas!
         
         this.timeFactor = 0.001; // Convert time units from picoseconds, by default to femtoseconds.
         this.distScale  = 10; // Convert spatial units. Currently used to convert pm to pixels.        
@@ -106,7 +108,9 @@ class Simulation {
     get_world_temperature() { return this.temperature; }
     set_bool_heat_exchange( bool ) { this.bHeatExchange = bool; }
     get_bool_heat_exchange() { return this.bHeatExchange; }
-
+    set_bool_world_gravity( bool ) { this.bWorldGravity = bool; }
+    get_bool_world_gravity() { return this.bWorldGravity; }
+  
     set_world_length_scale( x ) {
         this.distScale = x ;
         if( this.bSet ) { this.moleculeLibrary.set_current_image_all( this.molDrawStyle, this.distScale ); }
@@ -157,6 +161,7 @@ class Simulation {
         this.set_world_boundaries( globalVars.worldWidth, globalVars.worldHeight );
         this.set_world_temperature( globalVars.temperature );
         this.set_bool_heat_exchange( globalVars.bHeatExchange );
+        this.set_bool_world_gravity( globalVars.bWorldGravity );
         //this.set_target_number_of_molecules( globalVars.numMolecules );
         this.set_target_nMols_by_density( globalVars.densMolecules * 1e-6 );
         this.set_statistics_update_interval( globalVars.statisticsUpdateInterval );
@@ -692,8 +697,14 @@ class Simulation {
         }
                 
         // Simple movement
-        for (const mol of this.molecules) {
-            mol.update_position( dt );
+        if ( this.bWorldGravity ) {            
+            for (const mol of this.molecules) {
+                mol.update_position_with_acceleration( dt, this.world_gravity );
+            }
+        } else {
+            for (const mol of this.molecules) {
+                mol.update_position( dt );
+            }
         }
         
         // Asynchronous version of draw. Breaks fidelity a little but speeds up simulation work.

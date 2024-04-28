@@ -27,6 +27,12 @@ globalVars.temperatureParams = { min: 10, max: 1000, step: 10 }
 
 globalVars.bHeatExchange = true;
 
+// Define gravity to be 9.8 pm / ps^2 = 9.8 * 10^-6 pm / fs^2
+// Hardcode gravity for now within defineSimulation.js and allow changes later.
+// Gravity being 9.8 m/s^2 -> 9.8e-18 pm fs^-2. Clearly not visible in simulation time.
+globalVars.bWorldGravity = false;
+// globalVars.worldGravity = 9.8e-18 ; 
+
 // Determines the scaling between the simulation and the default pixel size.
 // Defaults to 1 pixel = 10 pm = 0.1 Angs.
 globalVars.distScale     = 10;
@@ -286,9 +292,11 @@ globalVars.presetReactions[ "nitrogen dioxide" ] = [
     Royal water" was the stuff chemists used to dissolve noble metals gold and platinum. There is a nice story about Hungarian chemist George de Hevesy dissolving two Nobel prize medals to evade confiscation by Nazi Germany. See Wikipedia entry: https://en.wikipedia.org/wiki/Aqua_regia
     Nowadays, the reactions between Clorine, chloride and NOx species are studied in marine air quality as chlorine in all its forms affect the balance of these pollutants. There are important air-water interface reactions that are beyond the scope of this model, but it is worth knowing as 
     
-    It begins with 3:1 mixture of HCl and HNO3, which will react and beign to form ClNO, ClNO2, and eventually just NO2.       
+    It begins with 3:1 mixture of HCl and HNO3, which will react and beign to form ClNO, ClNO2, and eventually just NO2.
         
-   For now, we will simply use one of the restricted textbook equilibrium cases.
+    For now, we will simply use one of the restricted textbook equilibrium cases.
+    NB: The rates in RL seems to heavily favour NO2 at a 10:1 ratio, whereas in this 2D model we have a 4:1 ratio.    
+    See: https://chemed.chem.purdue.edu/genchem/topicreview/bp/ch16/gas.php
 */
 globalVars.presetReactions[ "ClNO equilibrium (aqua regia)" ] = [
     {

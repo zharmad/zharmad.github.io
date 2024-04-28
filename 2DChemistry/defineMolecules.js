@@ -855,6 +855,13 @@ class Molecule {
         this.p.sincr( dt, this.v );
         this.th = ( this.th + this.om * dt ) % ( 2.0 * Math.PI ) ;
     }
+
+    update_position_with_acceleration( dt, a ) {
+        this.p.sincr( dt, this.v );
+        this.p.sincr( 0.5*dt*dt, a );
+        this.v.sincr( dt, a );
+        this.th = ( this.th + this.om * dt ) % ( 2.0 * Math.PI ) ;        
+    }
     
     rescale_velocities( s ) {
         this.v.scale( s );
@@ -973,6 +980,12 @@ class MoleculeMonoatomic extends Molecule {
     
     //Dynamics functions.
     update_position( dt ) { this.p.sincr( dt, this.v ); }
+    
+    update_position_with_acceleration( dt, a ) {
+        this.p.sincr( dt, this.v );
+        this.p.sincr( 0.5*dt*dt, a );
+        this.v.sincr( dt, a );
+    }
     
     rescale_velocities( s ) { this.v.scale( s ); }    
     
