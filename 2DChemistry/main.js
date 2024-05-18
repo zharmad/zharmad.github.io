@@ -373,7 +373,72 @@ chartReactionDiagram.options.scales.x.ticks.align = 'center';
 chartReactionDiagram.options.scales.y.title.display=true;
 chartReactionDiagram.options.scales.y.title.text = "Energy (kJ mol⁻¹)";
 
-// = =  Main software section. = = 
+// = = Export Graph Data Section = = 
+document.getElementById("buttonExportGraphData1").addEventListener("click", function(){
+  download_CSV({ filename: "measurement-data.csv", chart: chartLineGr1 })
+});
+document.getElementById("buttonExportGraphData2").addEventListener("click", function(){
+  download_CSV({ filename: "composition-data.csv", chart: chartLineGr2 })
+});
+
+// This following sections ius based on from JSFiddle work :https://jsfiddle.net/canvasjs/pcsgz06b/ 
+function convert_chart_data_to_CSV( args ) {  
+  var result, ctr, keys, columnDelimiter, lineDelimiter, dataset;
+
+  dataset = args.dataset || null;
+  if (dataset == null || !dataset.data.length) {
+    return null;
+  }
+
+  columnDelimiter = args.columnDelimiter || ',';
+  lineDelimiter = args.lineDelimiter || '\n';
+
+  //Hardcode for now.
+  keys = ['Time (ps)', dataset.label ]
+
+  result = '';
+  result += keys.join(columnDelimiter);
+  result += lineDelimiter;
+
+  dataset.data.forEach(function(item) {
+    ctr = 0;
+    item.forEach(function(value) {
+      if (ctr > 0) result += columnDelimiter;
+      result += value;
+      ctr++;
+    });
+    result += lineDelimiter;
+  });
+  return result;
+}
+
+function download_CSV( args ) {
+  var data, filename, link;
+  var csv = "";
+  for(var i = 0; i < args.chart.data.datasets.length; i++){
+    csv += convert_chart_data_to_CSV({
+      dataset: args.chart.data.datasets[i]
+    });
+  }
+  if (csv == null) return;
+
+  filename = args.filename || 'chart-data.csv';
+
+  if (!csv.match(/^data:text\/csv/i)) {
+    //csv = 'data:text/csv;charset=utf-8,' + csv;
+    csv = 'data:text/csv;charset=utf-8,\uFEFF' + csv;
+  }
+  
+  data = encodeURI(csv);
+  link = document.createElement('a');
+  link.setAttribute('href', data);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link); // Required for FF
+	link.click(); 
+	document.body.removeChild(link);   
+}
+
+// = =  Main software section. = = =
 let bRun = false;
 
 /* Initial setup of simulations for plug and play. */
@@ -400,13 +465,13 @@ sim.link_current_stats_text_fields({
     numMolecules: document.getElementById("textFieldCurrentNumMolecules"),
     temperature: document.getElementById("textFieldCurrentTemperature"),
     area: document.getElementById("textFieldCurrentArea"),
-    //pressure: document.getElementById("textFieldCurrentPressure"),
+    pressure: document.getElementById("textFieldCurrentPressure"),
 })
 
 /* Finalise initial setup. Hack to temporarily allow the HTML override values to be read and encoded. */
 globalVars.bPresetsOverwriteParams = false;
 initial_setup_with_html_vars( get_html_variables() );
-generate_preset_simulation( globalVars.initialPreset );
+generate_preset_simulation();
 globalVars.bPresetsOverwriteParams = true;
 
 //Link up all graph data.
@@ -704,8 +769,19 @@ function overwrite_global_values( strType ) {
     globalVars.componentRatios = p.componentRatios;
 }
 
-function generate_preset_simulation( strType ) {
+function copy_settings_to_clipboard() {
+    text = print_html_variables();
+    navigator.clipboard.writeText(text);
+}
+
+function set_preset_and_generate_simulation( strType ) {
+    globalVars.initialPreset = strType;
+    generate_preset_simulation();
+}
+
+function generate_preset_simulation() {
     stop_simulation();
+    strType = globalVars.initialPreset;
     
     if ( !(strType in globalVars.presets) ) {
         throw "ERROR: The preset type '${strType}' has not yet been defined in the globalVars presets object!";
@@ -720,19 +796,19 @@ function generate_preset_simulation( strType ) {
     // Create the gas composition here.
     const gc = new GasComposition('ratio');
     // gc.add_components_via_array( p.componentIDs, p.componentRatios ) ;
-    gc.add_components_via_globals() ;
+    gc.add_components_via_globals();
     gc.normalise();
     sim.set_gas_composition(gc);       
     
     const gr = get_new_preset_gas_reactions( {type: strType, moleculeLibrary: molLib} );
     sim.set_gas_reactions(gr);
-    
     sim.regenerate_simulation().catch( err=> { throw err; });    
         
 
     // Additional setup - ranging from gui modifiation to module loading.
     sync_composition_gui( p );
     sync_reaction_gui( gr );
+    gc.update_globalVars();
     
     //
     if ( undefined != p.componentHidePlot ) {
@@ -746,6 +822,19 @@ function generate_preset_simulation( strType ) {
     sim.reset_plugin_modules();
     // Load Photon emitter module for presets that require them.
     switch ( strType ) {
+        case "nitrogen dioxide":
+           var mod = new PhotonEmitterModule({
+                model: "single",
+                avgLambda: 188,
+                molNamesReaction: [ "N₂O₄" ],
+            });
+            sim.add_plugin_module( mod );
+            divPhotonEmitterIntensity.style.display = "block";
+            textFieldPhotonEmitterDescription.innerHTML = "<strong>188 nm UV laser</strong></br>";
+            sliderPhotonEmitterIntensity.value = -0.1;
+            sliderPhotonEmitterIntensity.oninput();
+            break;
+            
         case "ozone layer equilibrium":
             var mod = new PhotonEmitterModule({
                 model: "sqrt-bias",
@@ -775,6 +864,7 @@ function generate_preset_simulation( strType ) {
             sliderPhotonEmitterIntensity.oninput();
             break;            
         case "ozone layer with NOX":
+        case "NOX decomposition reactions":
             var mod = new PhotonEmitterModule({
                 model: "sqrt-bias",
                 minLambda:  80,
@@ -835,6 +925,7 @@ function sync_composition_gui( obj ) {
             o.textField.innerHTML = name ;
             o.slider.value = sim.gasComp.data[ name ] * 100.0 ;
             o.ratioField.innerHTML = o.slider.value;
+            
             //o.slider.oninput = function () { this.ratioField.innerHTML = this.value; }
             
             /*
@@ -861,6 +952,7 @@ function update_composition_GUI_from_gasComp() {
         arrCompositionGUI[i].slider.value = val ;
         arrCompositionGUI[i].ratioField.innerHTML = val ;
     }
+    sim.gasComp.update_globalVars();
 }
 
 // Create an interface to let users see what reactions have been encoded.

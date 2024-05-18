@@ -39,6 +39,11 @@ class GasComposition {
     get_component_names()  { return Object.keys(this.data); }
     get_component_values() { return Object.values(this.data); }
     get_components() { return Object.entries(this.data); }
+
+    update_globalVars() {
+        globalVars.componentIDs = this.get_component_names();
+        globalVars.componentRatios = this.get_component_values();
+    }
         
     add_component(name, val) {
         if ( undefined === this.data[name] ) {

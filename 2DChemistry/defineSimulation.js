@@ -891,12 +891,21 @@ class Simulation {
     /* General analysis functions*/
     measure_area() {
         return ( this.xBounds[1] - this.xBounds[0] ) * (this.yBounds[1] - this.yBounds[0] );
-    }    
+    }
+    
+    // This alternate method is consistent with kinetic theory, but is more volatile.
+    measure_temperatureB() {
+        const totKE = this.measure_total_kinetic_energy();
+        return totKE / ( this.nMolecules * 8.314 * this.timeFactor**2.0 * 1000 ) ;
+    }
+    
+    // The current method includes internal energies, which isn't technically not the Kelvin temperature.
     measure_temperature() {
         // Note: the minus 3 comes from the constraints on setting the center of mass and rotation to zero.
         const totE = this.measure_total_energy();
         return totE / ( 0.5 * (this.numDegrees - 3) * 8.314 * this.timeFactor**2.0 * 1000 ) ;
-    }    
+    }
+    
     measure_perimeter() {
         // In pm
         return 2.0 * ( this.xBounds[1] - this.xBounds[0] + this.yBounds[1] - this.yBounds[0] );
@@ -1114,8 +1123,8 @@ class Simulation {
     push_current_stats() {
         for ( const [ k, v ] of Object.entries( this.stats ) ) {
             if ( k in this.objTextFields ) {
-                if ( k === 'timeElapsed' ) {
-                    this.objTextFields[k].innerHTML = ( undefined != v[0] ) ? v[0].toFixed(3) : undefined;
+                if ( k === 'timeElapsed' || k === 'pressure' ) {
+                    this.objTextFields[k].innerHTML = ( undefined != v[0] ) ? v[0].toFixed(3) : undefined;                
                 } else {
                     this.objTextFields[k].innerHTML = ( undefined != v[0] ) ? v[0].toFixed(0) : undefined;
                 }
@@ -1372,6 +1381,8 @@ class PhotonEmitterModule {
             "NO•": PhotonEmitterModule.collision_radii_func_NO,
             "NO₂•": PhotonEmitterModule.collision_radii_func_NO2,
             "NO₃•": PhotonEmitterModule.collision_radii_func_NO3,
+            "N₂O₄": PhotonEmitterModule.collision_radii_func_N2O4,
+            "N₂O₅": PhotonEmitterModule.collision_radii_func_N2O5
         }
     }
 
@@ -1415,6 +1426,7 @@ class PhotonEmitterModule {
     // NO: Very approximate fit to source data. See UV-vis database.
     // NO2: Gaussian guesses based on Schneider et al. (1987). DOI: 10.1016/1010-6030(87)85001-3  . Also see Fig3 3 in paper below.
     // NO3: Photolysed very quickly during the day. See Fig. 5 of Bingen et al. (2019). DOI: 10.3389/fenvs.2019.00118
+    // N2O5: UV-Vis database, straight-forward. 4e-17 cm^-2 & FWHM of 46 nm
     static collision_radii_func_N2O( l ) {
         return  Math.sqrt( 2800 * gaussian(l, 112, 3.4) / Math.PI) + Math.sqrt( 8600 * gaussian(l, 129, 3.4) / Math.PI) + Math.sqrt( 700 * gaussian(l, 146, 3.4) / Math.PI);
      }
@@ -1425,8 +1437,18 @@ class PhotonEmitterModule {
         return Math.sqrt(  40 * gaussian(l, 215, 14) / Math.PI + 60 * gaussian(l, 400, 50) / Math.PI);
     }        
     static collision_radii_func_NO3( l ) {
-        return Math.sqrt( 300 * gaussian(l, 570, 43) / Math.PI + 2000 * gaussian(l, 662,  4) / Math.PI);
-    }       
+        return Math.sqrt( 300 * gaussian(l, 570, 46) / Math.PI + 2000 * gaussian(l, 662,  4) / Math.PI);
+    } //Note: NO3 radicals look blue.    
+    //static collision_radii_func_N2O3( l ) {
+        // return Math.sqrt( 4000 * gaussian(l, 160, 20) / Math.PI );
+    //} //Note: There is one, but the only dataset doesn't show a clean peak at all. Probably one at 190nm like N2O4.
+    static collision_radii_func_N2O4( l ) {
+        return Math.sqrt( 5400 * gaussian(l, 188, 15) / Math.PI  +  70 * gaussian(l, 339, 18) / Math.PI );
+    }   // Model two of three easily resolved peaks.
+    static collision_radii_func_N2O5( l ) {
+        return Math.sqrt( 4000 * gaussian(l, 160, 20) / Math.PI );
+    }
+
     
     // Imitating the visual absorption spectra found in Saiz-Lopez et al. (2004), DOI: 10.5194/acp-4-1443-2004
     // NB: The UV band is ignored. The additional vibrational peaks in the green-band is also ignored for simplicity.

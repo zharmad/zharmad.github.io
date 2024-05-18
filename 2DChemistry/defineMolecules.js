@@ -250,18 +250,9 @@ class MoleculeLibrary {
         this.add_entry_molecule_radialsymmetric({ element1: "C", element2: "F", n: 4, radius: 131.5, DeltaH:  -933 }); // CF₄
         this.add_entry_molecule_radialsymmetric({ element1: "S", element2: "F", n: 6, radius: 156.1, DeltaH: -1220 }); // SF₆
         
-        //Nitrogen dioxide equilibrium.        
-        this.add_entry({ name: "NO₂•", atoms: ["O","O","N"],
-            offsets: [[14.2,109.9],[14.2,-109.9],[-32.3,0.0]],
-            DeltaH: 34, molColour: "rgb(180,72,26)"
-        }); // NO₂• , reddish brown gas
-        this.add_entry({ name: "N₂O₄", atoms: ["O","O","N","O","O","N"],
-            offsets: [[134.3,110.1],[134.3,-110.1],[89.1,0.0],[-134.3,110.1],[-134.3,-110.1],[-89.1,0.0]],
-            DeltaH: 11, molColour: "#FFFFFF"
-        }); // N₂O₄ , colourless gas
+        //Nitrogen dioxide equilibrium. See NOX species below.        
 
         //Ozone layer equilibrium with Cl and NOx species. https://en.wikipedia.org/wiki/Ozone_layer
-        // Ignored molecules: N2O3 = 86, N2O5 = 15
         this.add_entry_molecule_triangle({ name: "O₃", atoms: ["O","O","O"], radii: [127.8,127.8], angle: 116.8, align: -3,
             DeltaH: 142, molColour: "rgb(255,127,127)",
         }); // O₃ , use a lighter red.
@@ -277,15 +268,39 @@ class MoleculeLibrary {
         });
         // Transient side product.
         this.add_entry_molecule_triangle( { name: "Cl₂O", atoms: ["Cl","Cl","O"], radii: [169.6,169.6], angle: 110.9, align: 3, DeltaH: 81 });
-                
-        this.add_entry_molecule_linear({ name: "N₂O", atoms: ["N","N","O"], radii: [ 112.8, 118.4 ], DeltaH: 83 }); // N₂O 
+        
+        // All NOx species defined below, sorted by N:O ratios and then in increasing size.
+        this.add_entry_molecule_linear({ name: "N₂O", atoms: ["N","N","O"], radii: [ 112.8, 118.4 ], DeltaH: 83 }); // N₂O, or NNO
+        // NON and triangular versions briefly exist.
         this.add_entry_molecule_linear({ name: "NO•", atoms: ["N","O"], radii: [ 115.4 ], DeltaH: 91 }); // NO 
-        this.add_entry_molecule_radialsymmetric({ name: "NO₃•", element1: "N", element2: "O", n: 3, radius: 123.8, DeltaH: 74 }); // NO₃•
-        // this.add_entry({ name: "N₂O₅", atoms: ["O","O","O","N","O","O","N"],
-            // offsets: [ ],
-            // DeltaH: 15
-        // });
-        // N₂O₅
+        this.add_entry({ name: "N₂O₂", atoms: ["O","O","N","N"],
+            offsets: [[-131.1,53.4],[131.1,53.4],[-111.8,-61.1],[111.8,-61.1]],
+            DeltaH: 171
+        }); // N₂O₂. ONNO is the main version with 2 Nitrogens at the centre.
+        this.add_entry({ name: "N₂O₃", atoms: ["O","O","O","N","N"],
+            offsets: [[-51.1,-109.6],[-51.1,109.6], [216.9,110.0],[0.0,0,0],[186.4,0.0]],
+            DeltaH: 86
+        }); // N₂O₃ with 2 Nitrogens at the centre. ONNO2 or ONNO₂
+        // N₂O₃ with 1 Oxygen at the centre, ONONO, exists but was not available in older database.
+        this.add_entry({ name: "NO₂•", atoms: ["O","O","N"],
+            offsets: [[14.2,109.9],[14.2,-109.9],[-32.3,0.0]],
+            DeltaH: 34, molColour: "rgb(180,72,26)"
+        }); // NO₂• , reddish brown gas        
+        this.add_entry({ name: "N₂O₄", atoms: ["O","O","N","O","O","N"],
+            offsets: [[134.3,110.1],[134.3,-110.1],[89.1,0.0],[-134.3,110.1],[-134.3,-110.1],[-89.1,0.0]],
+            DeltaH: 11, molColour: "#FFFFFF"
+        }); // N₂O₄ , colourless gas
+        this.add_entry({ name: "ONONO₂", atoms: ["O","O","N","O","N","O"],
+            offsets: [[-219.5,14.3],[-104.3,201.1],[-121.3,82.5],[219.5,14.3],[121.3,82.5],[0.0,0.0]],
+            DeltaH: 52, molColour: "#FFFFFF"
+        }); // N₂O₄ version B is ONONO2 with 1 Oxygen at the centre and less stable.  Middle process to NO2.
+        // Note: Apparently has a direct isomerisation with N2O4, which we'll ignore. https://pubmed.ncbi.nlm.nih.gov/17388577/
+        this.add_entry({ name: "N₂O₅", atoms: ["O","O","N","O","O","N","O"],
+            offsets: [[-219.5,14.3],[-104.3,201.1],[-121.3,82.5],[219.5,14.3],[104.3,201.1],[121.3,82.5],[0.0,0.0]],
+            DeltaH: 15
+        }); // N₂O₅ with 2 nitrogens at the centre. O2NONO2. No other version should exist.
+        // No experiental geometry available, so 1 oxygen is simply deleted.
+        this.add_entry_molecule_radialsymmetric({ name: "NO₃•", element1: "N", element2: "O", n: 3, radius: 123.8, DeltaH: 74 }); // NO₃•        
                 
         // volatile reaction processes of aqua regia.
         // WIP. Needs the evolution of gases from HCl and HNO3 for full process.

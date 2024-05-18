@@ -30,7 +30,7 @@ function erfinv(x) {
 }
 
 function gaussian( x, m, s ) { return Math.exp( -0.5*(x-m)*(x-m)/(s*s) ); }
-/* Note: something seems wrong in the sampling of these velocities. The temperatuer returned is never quite the input. */
+/* Note: something seems wrong in the sampling of these velocities. The temperatur returned is never quite the input. */
 
 // These factors are to be used to scale the random distrubtions so as to replicate the relevant chi distributions.
 // Apply to Random_2DGaussian to generate the relevant Maxwell velocity disturbtion for a particle.
@@ -47,7 +47,11 @@ function scale_factor_Maxwell(T, mass) { return Math.sqrt( 8314.46 * T / mass );
 //function scale_factor_Maxwell3D(T, mass) { return Math.sqrt( 21172.59853023744 * T / mass ); }
 
 // Returns the scalar speed of a particle in 2D motion.
+// Note: This seems to be incorrect, as it should be the CDF of a Maxwell 2D speed distribution,
+// ...and the Maxwell 2D speed distribution should be Axe^(-0.5Ax^2), where A=m/k_BT.
 function random_chi2D() { return Math.sqrt( -2.0 * Math.log( 1.0 - Math.random() ) ); }
+
+// Returns the scalar speed of a particle in 1D motion.
 function random_chi1D() { return erfinv( 2.0 * Math.random() - 1.0 ) * 1.4142; }
 
 // Returns speed in pm ps^1. Mass in amu. Temperature in Kelvin. 1.4142 is a squareroot 2 for two degrees of freedom.

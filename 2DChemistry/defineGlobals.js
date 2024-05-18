@@ -81,6 +81,22 @@ function get_html_variables() {
     return mapUserHTMLVars;
 }
 
+// Converts a subset of variables to html optional arguments to save ycustom parameters.
+function print_html_variables() {
+    var ret;
+    //ret = window.location;
+    ret = window.location.href.split('?')[0];
+    ret += "?initialPreset="+globalVars.initialPreset;    
+    // Hard-code saved options for now.
+    ret += "&distScale="+globalVars.distScale;
+    ret += "&densMolecules="+globalVars.densMolecules;
+    ret += "&temperature="+globalVars.temperature;
+    ret += "&componentIDs="+globalVars.componentIDs;
+    ret += "&componentRatios="+globalVars.componentRatios;
+    
+    return ret;
+}
+
 function initial_setup_with_html_vars( mapUserHTMLVars ) {
     
     const p = mapUserHTMLVars.get( "initialPreset" );
@@ -93,8 +109,10 @@ function initial_setup_with_html_vars( mapUserHTMLVars ) {
         if ( undefined != s ) {            
             switch (key) {
                 case "componentIDs":
-                case "componentRatios":
                     globalVars[key] = s.split(',');
+                    break;                
+                case "componentRatios":
+                    globalVars[key] = s.split(',').map(Number);
                     break;
                 default:
                     globalVars[key] = s;
@@ -218,6 +236,25 @@ temp.componentHidePlot = [ "N₂", "NO•", "NO₂•", "NO₃•", "N•" ];
 // temp.componentIDs    = [ "N₂", "O₂", "O₃", "NO•", "NO₂•", "NO₃•", "N₂O", "O•", "N•", ];
 // temp.componentRatios = [ 0.76, 0.20, 0.01, 0.01, 0.02, 0.0 ];
 // temp.componentHidePlot = [ "N₂", "NO•", "NO₂•", "NO₃•", "N₂O","N•" ];
+
+temp = globalVars.presets[ "NOX decomposition reactions" ] = {};
+temp.distScale = 30;
+temp.timeDelta = 100;
+temp.worldTemperature = 200;
+temp.bDoHeatExchange = true;
+//temp.numMolecules = 400;
+temp.densMolecules = 0.8;
+temp.numComponentsShow = 13;
+temp.componentIDs    = [ "N₂O₅", "N₂O₄", "N₂O₃", "N₂O₂", "ONONO₂", "N₂", "O₂", "O₃", "NO•", "NO₂•", "NO₃•", "N•", "O•" ];
+temp.componentRatios = [ 0.3, 0.3, 0.2, 0.1, 0.1 ];
+temp.componentHidePlot = [ "N₂", "O₂", "O₃", "NO•", "NO₂•", "NO₃•", "N•", "O•" ];
+/*
+    TODO: Add reactions for all additional NOx species not modelled within the Ozone layer set.
+    However, need to add NO recombination with N2O5 pathway above to encourage decomposition:
+        - i.e. N2O5 + NO -> ONONO2 + NO2 -> 3 * NO2. With UV catalysis of ONONO2 and N2O5, if possible.
+        - i.e. 2 * NO2 <-> N2O4, with UV catalysis.
+        - i.e. 2 * NO <-> N2O2, with UV catalysis if possible.
+*/
 
 temp = globalVars.presets[ "combustion - H2 and O2 basic" ] = {};
 temp.distScale  = 30;
@@ -686,6 +723,13 @@ globalVars.presetReactions[ "ozone layer with Chlorine" ] = [
     10. N2O5 + H2O -> 2HNO3 (not modelled here so as to exclude set of hydrogen reactions)
     Authors state the nighttime net increase of HNO3, N2O5, and ClONO2 serve as the basis for daytime destruction of ozone layers.
     Also see other papers for further discussions. Bannan et al. (2015) introduces chlorine sources as an additional pollutant alongside NOX.
+    
+    Notes: Simulation fo opf 50% NO2 and 50% NO3 produces equimolar of NO2, NO, and O2.
+    ...There are alternate pathways that may need to be considered in order to further reduce the formation of NO.
+    This goes via the N2O5 + NO -> NO2 + NO2 + NO2 path.
+    See: https://chemistry.stackexchange.com/questions/169350/mechanism-of-decomposition-of-n2o5 
+    See also: Schott and Davidson (1958)
+    
 */
 globalVars.presetReactions[ "ozone layer with NOX" ] = [
     // Common pathways.
@@ -880,7 +924,6 @@ globalVars.presetReactions[ "ozone layer with NOX" ] = [
         // productAngleRanges:  [ 360, 360 ],
         // EActivation:  10.0, bDoReverse: false
     // }, //DeltaH: -43 kJ/mol. Guessed EA. Ignore reverse pathway.
-
     
     // Gaseous nitric acid not modelled as this pracitcally involves water droplets.
     //{  reactantNames: [ "N₂O₅", "H₂O" ], productNames: [ "HNO₃", "HNO₃" ] },
@@ -1125,6 +1168,53 @@ globalVars.presetReactions[ "combustion - H2 and O2 advanced" ] = [
         productAngleRanges:  [ 120, 240 ],
         EActivation: 3.0,  bDoReverse: false,
     }, // DeltaH: -132 kJ/mol. Symmetry 2.
+]
+
+/*
+    Additional Reactions involving N2OX species.
+    List of DeltaH as follows:
+    - NO•: 91, NO₂•: 34, NO₃•: 74
+    - N₂O: 83, N₂O₂: 171, N₂O₃: 86, N₂O₄: 11, ONONO₂: 52, N₂O₅: 15
+*/
+globalVars.presetReactions[ "NOX expanded reactions" ] = [
+        
+    // Synthesis & decomposition reactions.
+    {
+        reactantNames: ["NO₃•", "NO₂•"], productNames: ["N₂O₅"],
+        reactantAngles: [   0,    0 ], reactantAngleRanges: [ 360,  120 ],
+        EActivation: 0.5, lifetimeActivated: 1000,
+    }, // DeltaH: -93 kJ/mol, guessed EA.
+    {
+        reactantNames: ["NO₂•", "NO₂•"], productNames: ["ONONO₂"],
+        reactantAngles: [   0,    0 ], reactantAngleRanges: [ 360,  120 ],
+        bDoForward: false,
+        EActivation: 3.0, lifetimeActivated: 1000,
+    }, // DeltaH: -16 kJ/mol, guessed EA.    
+    {
+        reactantNames: ["NO₂•", "NO•"], productNames: ["N₂O₃"],
+        reactantAngles: [   0,    0 ], reactantAngleRanges: [ 120,  180 ],
+        EActivation: 1.0, lifetimeActivated: 1000,
+    }, // DeltaH: -39 kJ/mol, guessed EA.
+    {
+        reactantNames: ["NO•", "NO•"], productNames: ["N₂O₂"],
+        reactantAngles: [   0,    0 ], reactantAngleRanges: [ 180,  180 ],
+        EActivation: 3.0, lifetimeActivated: 1000,
+    } // DeltaH: -11 kJ/mol, guessed EA.
+    
+    // Transfer reactions with oxygen radicals and molecules.
+    // {
+        // reactantNames: ["N₂O₂", "O₂"], productNames: ["NO₂•","NO₂•"],
+        // reactantAngles: [   0,    0 ], reactantAngleRanges: [ 180,  180 ],
+        // EActivation: 2.0, lifetimeActivated: 1000,
+    // },
+    // {
+        // reactantNames: ["N₂O₅", "NO•"], productNames: ["ONONO₂","NO₂•"],
+        // reactantAngles: [   0,    0 ], reactantAngleRanges: [ 180,  180 ],
+        // EActivation: 2.0, lifetimeActivated: 1000,
+    // }, // N2O5 & NO decay pathway.
+
+
+    
 ]
 
 /*    

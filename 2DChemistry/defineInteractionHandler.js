@@ -1082,7 +1082,15 @@ function get_new_preset_gas_reactions( args ) {
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });               
             arrReactions = globalVars.presetReactions[ "ozone layer with NOX" ];
             arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
-            break;        
+            break;
+
+        case 'NOX decomposition reactions':
+            arrReactions = globalVars.presetReactions[ "ozone equilibrium core" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });               
+            arrReactions = globalVars.presetReactions[ "ozone layer with NOX" ];
+            arrReactions.forEach( r => { gr.parse_input_reaction( r ); });
+            // Add N2O3, N2O4, and N2O5 paths.
+            break;
 
         case 'combustion - H2 and O2 basic':
             arrReactions = globalVars.presetReactions[ "combustion - H2 and O2 basic" ];
