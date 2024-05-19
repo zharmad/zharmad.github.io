@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width">
     <title>2DChem gas simulator</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   </head>
 
   <body>
@@ -13,7 +14,7 @@
     <div id="mainWindow">
         <div id="containerSidebarButtons">
             <button class="buttonOpenSidebar" onclick="toggle_sidebars('presets')">🗎 Intro</button>
-            <button class="buttonOpenSidebar" onclick="toggle_sidebars('composition')">🥧 Composition</button>            
+            <button class="buttonOpenSidebar" onclick="toggle_sidebars('composition')">🥧 Configs</button>            
             <button class="buttonOpenSidebar" onclick="toggle_sidebars('controls')">☰ Controls</button>
             <button class="buttonOpenSidebar" onclick="toggle_sidebars('analysisLine')">📈 Plots</button>
             <button class="buttonOpenSidebar" onclick="toggle_sidebars('analysisBar')">📊 Plots</button>
@@ -35,36 +36,48 @@
                 <button class="buttonSimControl" onclick="activate_step_button()">1️⃣ Step</button>
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
-            <hr width="50%" align="center" color="grey" size="2">                
-            Load simulation preset:
-            <div class="dropdown">            
-                <button id="buttonPresetChoices" class="buttonDropDown">basic</button>
-                <div id="divSimulationPresetOptions" class="dropdown-content">
-                    <a onclick="set_preset_and_generate_simulation('inert gases')">Mixture of noble and relatively inert gases</a>
-                    <a onclick="set_preset_and_generate_simulation('atmosphere')">Earth Atmosphere</a>
-                    <a onclick="set_preset_and_generate_simulation('ozone layer equilibrium')">Ozone layer equilibrium</a>
-                    <a onclick="set_preset_and_generate_simulation('nitrogen dioxide')">Nitrogen dioxide equilibrium</a>
-                    <a onclick="set_preset_and_generate_simulation('ClNO equilibrium (aqua regia)')">Aqua regia gases simpl. equilibrium</a>
-                    <a onclick="set_preset_and_generate_simulation('combustion - H2 and O2 basic')">Oxygen and hydrogen simple combustion</a>
+            <hr width="50%" align="center" color="grey" size="2">
+            <div class="containerGrid2">
+                <div class="gridItem2">
+                    <h2>Load scenario
+                    <span class="tooltip"> <i class="material-icons">info</i>
+                        <span class="tooltipTextDown">Here is a set of preset scenarios that will load a list of molecules, their programmed chemical reactions, and all other initial parameters required to generate a simulation.</span>
+                    </span>
+                    </h2>
+                </div>            
+                <div class="dropdownBlock">
+                    <button id="buttonPresetChoices" class="buttonDropdownBlock">Basic</button>
+                    <div id="divSimulationPresetOptions" class="dropdownBlock-content">
+                        <a onclick="set_preset_and_generate_simulation('inert gases')">Mixture of noble and relatively inert gases</a>
+                        <a onclick="set_preset_and_generate_simulation('atmosphere')">Earth Atmosphere</a>
+                        <a onclick="set_preset_and_generate_simulation('ozone layer equilibrium')">Ozone layer equilibrium</a>
+                        <a onclick="set_preset_and_generate_simulation('nitrogen dioxide')">Nitrogen dioxide equilibrium</a>
+                        <a onclick="set_preset_and_generate_simulation('ClNO equilibrium (aqua regia)')">Aqua regia gases simpl. equilibrium</a>
+                        <a onclick="set_preset_and_generate_simulation('combustion - H2 and O2 basic')">Oxygen and hydrogen simple combustion</a>
+                    </div>
                 </div>
-            </div>
-            <div class="dropdown"> 
-                <button id="buttonPresetChoicesAdv" class="buttonDropDown">advanced</button>
-                <div id="divSimulationPresetOptionsAdv" class="dropdown-content">
-                    <a onclick="set_preset_and_generate_simulation('hydrogen iodide equilibrium')">Hydrogen iodide equilibrium</a>                
-                    <a onclick="set_preset_and_generate_simulation('ozone layer with Chlorine')">Ozone layer with Cl radicals</a>
-                    <a onclick="set_preset_and_generate_simulation('ozone layer with NOX')">Ozone layer with NOX species</a>
-                    <a onclick="set_preset_and_generate_simulation('NOX decomposition reactions')">UV-catalysed NOX decomposition (WIP)</a>
-                    <a onclick="set_preset_and_generate_simulation('combustion - H2 and O2 advanced')">Oxygen and hydrogen full combustion</a>
-                    <a onclick="set_preset_and_generate_simulation('combustion - hydrocarbon')">Methane combustion (WIP)</a>
+                <div class="dropdownBlock"> 
+                    <button id="buttonPresetChoicesAdv" class="buttonDropdownBlock">Advanced</button>
+                    <div id="divSimulationPresetOptionsAdv" class="dropdownBlock-content">
+                        <a onclick="set_preset_and_generate_simulation('hydrogen iodide equilibrium')">Hydrogen iodide equilibrium</a>                
+                        <a onclick="set_preset_and_generate_simulation('ozone layer with Chlorine')">Ozone layer with Cl radicals</a>
+                        <a onclick="set_preset_and_generate_simulation('ozone layer with NOX')">Ozone layer with NOX species</a>
+                        <a onclick="set_preset_and_generate_simulation('NOX decomposition reactions')">UV-catalysed NOX decomposition (WIP)</a>
+                        <a onclick="set_preset_and_generate_simulation('combustion - H2 and O2 advanced')">Oxygen and hydrogen full combustion</a>
+                        <a onclick="set_preset_and_generate_simulation('combustion - hydrocarbon')">Methane combustion (WIP)</a>
+                    </div>                
+                </div>
+                <div class="gridItem2" style="text-align: center;">
+                    <button id="buttonCopyPresetToClipboard" class="buttonDropdownBlock" onclick="copy_settings_to_clipboard()" >
+                        Copy configs to clipboard                    
+                    <span class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextDown">(WIP) Saves the gas composition and some parameters as an HTML address to your clipboard.</span>
+                    </span>
+                    </button>
                 </div>                
             </div>
-            <p><label class="switchToggle"><input type="checkbox" id="togglePresetsOverwriteParams"><span class="sliderToggle round"></span></label> Overwrite existing parameters on load</p>
-            <hr width="50%" align="center" color="grey" size="2">
-            <p>
-                <button id="buttonCopyPresetToClipboard" class="buttonStandard" onclick="copy_settings_to_clipboard()" >
-                    Copy settings to clipboard (WIP)
-                </button>
+            
+            <p><label class="switchToggle"><input type="checkbox" id="togglePresetsOverwriteParams"><span class="sliderToggle round"></span></label> Overwrite existing parameters on load
             </p>
             
             <hr width="50%" align="center" color="grey" size="2">
@@ -108,13 +121,12 @@
             
             <p>If you wish to check values in this toy model against their equivalents in our world, please note that both the energy division and the compression from 3D to 2D will implact most measurements:
             <ul>
-                <li>The corresponding ideal gas constant in 2D is not necessarily 8.314 J K⁻¹ mol⁻¹. Adjustments are need to <a href="https://en.wikipedia.org/wiki/Ideal_gas_law#Energy_associated_with_a_gas">convert</a> the total energy of molecules to a temperature value;</li>
+                <li>The ideal gas constant in 2D is still 8.314 J K⁻¹ mol⁻¹, once the <a href="https://en.wikipedia.org/wiki/Ideal_gas_law#Energy_associated_with_a_gas">energy-temperature</a> relationship is redefined as KE = 2/2 RT.</li>
                 <li><a href="https://en.wikipedia.org/wiki/Autoignition_temperature">autoignition temperatures</a> are much lower;</li>
                 <li>rates of reaction are vastly accelerated;</li>
                 <li>the average <a href="https://en.wikipedia.org/wiki/Maxwell%E2%80%93Boltzmann_distribution">speed of gas molecules</a> is reduced;</li>
-                <li>and so on.</li>
+                <li><emph>etc.</emph></li>
             </ul>
-            The ideal gas law still exists. After all, this law was originally devised using similar models in 19th-century, just without computers.
             </p>
             
         </div>
@@ -130,7 +142,7 @@
             <hr width="50%" align="center" color="grey" size="2">
             
             <p>
-            <strong>Current statistics</strong>
+            <h2>Current statistics</h2>
             <table>
                 <tr>
                     <th textalign="right">Time elapsed:</th> <td><span id="textFieldCurrentTimeElapsed"></span> ps<td>
@@ -142,7 +154,7 @@
                     <th textalign="right">Temperature:</th> <td><span id="textFieldCurrentTemperature"></span> K</td>
                 </tr>
                 <tr>
-                    <th textalign="right">Area:</th> <td><span id="textFieldCurrentArea"></span> nm²</td>
+                    <th textalign="right">Box Area:</th> <td><span id="textFieldCurrentArea"></span> nm²</td>
                 </tr>
                 <tr>
                     <th textalign="right">Pressure:</th> <td><span id="textFieldCurrentPressure"></span> amu ps⁻²</td>
@@ -154,39 +166,68 @@
             <ul>
                 <li>
                     <hr width="50%" align="center" color="grey" size="2">
-                    <p>Simulation settings:</p>
+                    <h2>Simulation settings</h2>
                 </li>                
                 <li>
-                    World Temperature: <span id="textFieldWorldTemperature"></span>
+                    World temperature
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This sets the temperature outside the simulation box.</span>
+                    </div>:
+                    <span id="textFieldWorldTemperature"></span> K
                     <input type="range" min="10" max="1000" value="300" step="10" class="slider" id="sliderWorldTemperature">
                 </li>
                 <li>
-                    <label class="switchToggle"><input type="checkbox" id="toggleDoHeatExchange"><span class="sliderToggle round"></span></label>
-                    Do heat exchange when a molecule collides with simulation boundaries
+                    Wall thermal conductivity
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This determines how effective the box walls will be at transferring heat with colliding molecules.</span>
+                    </div>:
+                    <span id="textFieldWallThermalConductivity"></span>
+                    <input type="range" min="0.0" max="1.0" value="1.0" step="0.05" class="slider" id="sliderWallThermalConductivity">
                 </li>
                 <li>
-                    <label class="switchToggle"><input type="checkbox" id="toggleDoGravity"><span class="sliderToggle round"></span></label>
-                    Simulate effect of gravity at 10¹² g.
+                    World gravity multiplier
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This sets an effective downward acceleration, as if the box resides within a centrifuge.</span>
+                    </div>:
+                    <span id="textFieldWorldGravityMultipler">(off)</span>
+                    <input type="range" min="-1" max="12" value="-1" step="1" class="slider" id="sliderWorldGravityMultipler">                               
+                    <!-- <label class="switchToggle"><input type="checkbox" id="toggleDoGravity"><span class="sliderToggle round"></span></label>
+                    Simulate effect of gravity at 10¹² g. -->
                 </li>                
                 <li>
-                    World Area: <span id="textFieldWorldAreaPercentage"></span>% of window.
+                    Box area
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This controls the box area by moving the right-side wall.</span>
+                    </div>:
+                    <span id="textFieldWorldAreaPercentage"></span>% of window.
                     <input type="range" min="20" max="100" value="100" step="1" class="slider" id="sliderWorldAreaPercentage">
                 </li>
                 <li>
-                    Sim speed: <span id="textFieldTimeDelta"></span> fs simulation time per step.
+                    Simulation timestep
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This balances between sim speed & fidelity by setting the time elapsed per calculation step. Small molecules like hydrogen require small timesteps.</span>
+                    </div>:
+                    <span id="textFieldTimeDelta"></span>
                     <input type="range" min="10.0" max="100.0" step="10.0" value="10.0" class="slider" id="sliderTimeDelta">
                 </li>                
                 <li>
-                    (Pause for <span id="textFieldSleepDurationPerFrame">0</span> ms real-life time between each step.)
+                    Pause delay between steps
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This is an FPS setting that slows down performance, which can also help users track individual molecules.</span>
+                    </div>:
+                    <span id="textFieldSleepDurationPerFrame">0</span> ms
                     <input type="range" min="-1" max="24" step="1" value="-1" class="slider" id="sliderSleepDurationPerFrame">
                 </li>
                 
                 <li>
                     <hr width="50%" align="center" color="grey" size="2">
-                    <p>Graphical settings:</p>
+                    <h2>Graphical settings</h2>
                 </li>                
                 <li>
-                    Display style:
+                    Colouring style
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This colours the molecules either per atom based on their CPK colours, or as a single average colour.</span>
+                    </div>:
                     <div class="dropdown">
                         <button id="buttonMoleculeDrawStyle" class="buttonDropDown">molecule-fast</button>
                         <div id="divMoleculeDrawStyleOptions" class="dropdown-content">
@@ -196,13 +237,20 @@
                             <a onclick="update_molecule_draw_style('atom-slow')">atom-slow</a>
                         </div>
                     </div>
-                </li>
+                </li>                   
                 <li>
-                    <label class="switchToggle"><input type="checkbox" id="toggleUpdateSimWindow"><span class="sliderToggle round"></span></label> Show/hide atom movements
-                </li>
-                <li>
-                    Motion Trails: <span id="textFieldInvRefreshAlpha"></span>
+                    Motion trails
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This cosmetic setting helps to visualise the trajectory of molecules.</span>
+                    </div>:
+                    <span id="textFieldInvRefreshAlpha"></span>
                     <input type="range" min="1.0" max="10.0" value="2.5" step="0.5" class="slider" id="sliderInvRefreshAlpha">
+                </li>                
+                <li>
+                    <label class="switchToggle"><input type="checkbox" id="toggleUpdateSimWindow"><span class="sliderToggle round"></span></label> Show/hide molecules
+                    <div class="tooltip"> <i class="material-icons" >info</i>
+                        <span class="tooltipTextUp">This saves simulation performance in large systems by skipping the draw step.</span>
+                    </div>.
                 </li>                
             </ul>
             </div>
@@ -211,8 +259,12 @@
             <div id="divPhotonEmitterIntensity" class="divDynamicBox">
                 <p>
                 <span id="textFieldPhotonEmitterDescription"></span>
-                Intensity: <span id="textFieldPhotonEmitterIntensity"></span>
                 </p>
+                Photon intensity
+                <div class="tooltip"> <i class="material-icons" >info</i>
+                    <span class="tooltipTextUp">The Photon Emitter module models absorption of light by some molecules, which catalyses their decomposition reactions.</span>
+                </div>:
+                <span id="textFieldPhotonEmitterIntensity"></span>                
                 <input type="range" min="-0.1" max="3.0" value="1.0" step="0.1" class="slider" id="sliderPhotonEmitterIntensity">
             </div>
 
@@ -225,13 +277,23 @@
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
             <hr width="50%" align="center" color="grey" size="2">
-        
+            <h2>Inital parameters (press Reset to update)</h2>
             <div class="divDynamicBox">
-                <p>Distance scale: 1 pixel = <span id="textFieldDistScale"></span> pm</p>
+                <p>Distance scale
+                <span class="tooltip"> <i class="material-icons">info</i>
+                    <span class="tooltipTextDown">This determines how large the box will be, as a function of your screen size.</span>
+                </span>:
+                1 pixel = <span id="textFieldDistScale"></span> pm
+                </p>
                 <input type="range" min="5" max="30" step="1" value="10" class="slider" id="sliderDistScale">
             </div>
             <div class="divDynamicBox">
-                <p>Density: <span id="textFieldDensMolecules"></span> nm⁻²
+                <p>Number density
+                <span class="tooltip"> <i class="material-icons">info</i>
+                    <span class="tooltipTextDown">This determines how many molecules will be placed <emph>in total</emph>.</span>
+                </span>:
+                <span id="textFieldDensMolecules"></span> nm⁻²
+                </p>
                 <input type="range" min="0.1" max="5.0" step="0.05" value="0.3" class="slider" id="sliderDensMolecules">
             </div>
             <!--
@@ -240,8 +302,8 @@
                 <input type="range" min="10" max="1000" value="300" step="10" class="slider" id="sliderInitialTemperature">
             </div>
             -->
-            <p>Initial simulation area: <span id="textFieldSimArea"></span> nm²</p>
-            <p>Est. number of molecules: <span id="textFieldNumMolecules"></span></p>
+            <p>Computed box area: <span id="textFieldSimArea"></span> nm²</p>
+            <p>Estimated molecule count: <span id="textFieldNumMolecules"></span></p>
             
             <hr width="50%" align="center" color="grey" size="2">
             
@@ -250,7 +312,11 @@
             </div>
             
             <hr width="50%" align="center" color="grey" size="2">
-            <p>Initial composition:</p>
+            <h2>Initial composition
+            <span class="tooltip"> <i class="material-icons">info</i>
+                <span class="tooltipTextUp">This determines the relative abundance of molecules when a new simulation is created.</span>
+            </span>
+            </h2>
             <div id="divInputComponent0" class="divDynamicBox">
                 <p><span id="colourBoxComponent0">  </span> <span id="textFieldComponent0"></span> : <span id="textPercentageComponent0"></span>%</p>
                 <input type="range" min="0" max="100" value="50" class="slider" id="sliderPercentageComponent0">
@@ -341,12 +407,17 @@
                 <button class="buttonSimControl" onclick="restart_simulation()">↩️ Reset</button>
             </p>
             <hr width="50%" align="center" color="grey" size="2">
-            
+            <h2>Kinetic energy histogram</h2>
             <canvas id="canvasBarGraph" height="200" class="canvasGraph"></canvas>
             
             <hr width="50%" align="center" color="grey" size="2">
-            
-            Show reaction diagram:
+            <h2>
+                Reaction diagram
+                <span class="tooltip"> <i class="material-icons" >info</i>
+                    <span class="tooltipTextUp">Shows the reaction potential energy surface for programmed atomic reactions.</span>
+                </span>
+            </h2>
+            Show:
             <div class="dropdown">
                 <button id="buttonReactionDragramContents" class="buttonDropDown">None</button>
                 <div id="divReactionDragramOptions" class="dropdown-content">

@@ -26,9 +26,11 @@ class Simulation {
         //this.dt          = 50; //Basically in ~ picoseconds. average velocity of 2D oxygen molecule is ~300 ms^-1, or 30 px per timestep.       
         this.temperature = 300;
         this.bSet = false;
-        this.bHeatExchange = true ;
-        this.bWorldGravity = false ;
-        this.world_gravity = new Vector2D( 0, 9.81e-6 ); // Hardcode gravity for now at 10^12 g. Positive y is down for the canvas!
+        
+        this.bHeatExchange = true ;        
+        this.wallThermalConductivity = 1.0 ;
+        this.bDoWorldGravity = false ;
+        this.vecWorldGravity = new Vector2D( 0, 9.81e-18 ); // 1 g. Positive y is down for the canvas!        
         
         this.timeFactor = 0.001; // Convert time units from picoseconds, by default to femtoseconds.
         this.distScale  = 10; // Convert spatial units. Currently used to convert pm to pixels.        
@@ -106,10 +108,13 @@ class Simulation {
     
     set_world_temperature( T ) { this.temperature = T; }
     get_world_temperature() { return this.temperature; }
-    set_bool_heat_exchange( bool ) { this.bHeatExchange = bool; }
-    get_bool_heat_exchange() { return this.bHeatExchange; }
-    set_bool_world_gravity( bool ) { this.bWorldGravity = bool; }
-    get_bool_world_gravity() { return this.bWorldGravity; }
+    set_wall_thermal_conductivity( k ) { this.wallThermalConductivity = k ; this.bHeatExchange = ( 0 < k ); }
+    get_wall_thermal_conductivity() { return this.wallThermalConductivity; }         
+    set_world_gravity_multiplier( f ) {
+        this.bDoWorldGravity = ( -1 < f );
+        if ( -1 < f ) { this.vecWorldGravity[1] = globalVars.gravitationalConstant * 10 ** f ; }
+    }
+    get_world_gravity() { return this.vecWorldGravity; }
   
     set_world_length_scale( x ) {
         this.distScale = x ;
@@ -160,8 +165,8 @@ class Simulation {
         this.set_world_length_scale( globalVars.distScale );
         this.set_world_boundaries( globalVars.worldWidth, globalVars.worldHeight );
         this.set_world_temperature( globalVars.temperature );
-        this.set_bool_heat_exchange( globalVars.bHeatExchange );
-        this.set_bool_world_gravity( globalVars.bWorldGravity );
+        this.set_wall_thermal_conductivity( globalVars.wallThermalConductivity );
+        this.set_world_gravity_multiplier( globalVars.worldGravityMultiplier );
         //this.set_target_number_of_molecules( globalVars.numMolecules );
         this.set_target_nMols_by_density( globalVars.densMolecules * 1e-6 );
         this.set_statistics_update_interval( globalVars.statisticsUpdateInterval );
@@ -697,9 +702,9 @@ class Simulation {
         }
                 
         // Simple movement
-        if ( this.bWorldGravity ) {            
+        if ( this.bDoWorldGravity ) {            
             for (const mol of this.molecules) {
-                mol.update_position_with_acceleration( dt, this.world_gravity );
+                mol.update_position_with_acceleration( dt, this.vecWorldGravity );
             }
         } else {
             for (const mol of this.molecules) {
@@ -747,14 +752,14 @@ class Simulation {
             this.xWallVel = 0;
         }
         
-        // Resolve any collision with the walls.
+        // Resolve any collision with the walls, and accumulate the total outward momentum transfer for presure calculations
         let totalMomentumTransfer = 0.0;
         for (const mol of this.molecules) {
             //Shift molecules            
             totalMomentumTransfer += this.process_wall_collisions(mol);            
         }
         
-        //Zero all angular momentum to reduce ice cude phenomenon. This now breaks strict energy conservation of the system.
+        //Zero all angular momentum to reduce ice-cube phenomenon. This now breaks strict energy conservation of the system.
         if ( this.timestep % this.systemZeroInterval == 1 ) {
             this.zero_total_momentum();
             // const sysP = this.get_linear_momentum(); 
@@ -818,8 +823,8 @@ class Simulation {
     // const w = (rotI != null ) ? sep1P.cross(vecN)**2.0/rotI : 0.0;
     // const f = 1.0 / ( 1.0/mass + w ) ;
     // const impulse = f * vel1PInit.dot(vecN) * (1 + elasticity) ;
+    // Function returns the change in momentum.
     process_wall_collisions(mol) {
-        const frac = 0.5; // Temporary placeholder for heat exchange efficiency.
         const xBounds = this.xBounds, yBounds = this.yBounds;
         const s = mol.size, p = mol.p, v = mol.v ;
         let bCollideX = false, bCollideY = false, bMovingWall = false;        
@@ -848,20 +853,14 @@ class Simulation {
         }
         
         /*
-        Resample energies upon contact with the outside world. The default loses energy over time because faster molecules collide with the walls more often. This results in net energy tranfer to the outside. A correction constant is thus determined numerically from atmospheric samples.
-        A values of 1.38 leads to the following:
-            - 200 molecules in 303nm^2 box gives 292K.
-            - 500 molecules in 303nm^2 box gives 300K.
-        This confirms that the constant will have a small dependence on density, i.e. collision rate between molecules.
+        Resample energies upon contact with the outside world. The implementation is unproven, as the velocities distributions as an outcome of collisions is probably not identical to a Maxwell distributon. The system will by default be colder than its environment because faster molecules collide with the walls more often.
+        Thus, a constant multiplier to the reset velocities has been fitteded. This constant may have a small dependence on density, i.e. collision rate between molecules.
         */
         if ( !bCollideX && !bCollideY ) { return 0.0 }
         
         if ( this.bHeatExchange ) {
-            // TODO: Add heat exchagne coefficient via frac .
-            // mol.resample_speed( this.temperature * 1.26 );
-            // mol.resample_omega( this.temperature * 1.26 );
-            mol.resample_speed( this.temperature * 1.38 );
-            //mol.resample_speed( this.temperature );
+            //mol.resample_speed( this.temperature * 1.38 );
+            mol.resample_speed( this.temperature * 1.84, 0.5*this.wallThermalConductivity );
             mol.resample_omega( this.temperature );
         }
         
@@ -1565,7 +1564,7 @@ class PhotonEmitterModule {
                 // simple bias towards higher wavelengths to approximate the wavelength dependence in the UV regime.
                 return this.minLambda + Math.sqrt( Math.random() ) * ( this.maxLambda - this.minLambda );            
             case 'solar':
-                // TODO.
+                // TODO. I(l,T) = (2 pi h c^2 / l^5) * 1 / ( e ^(hc/lkT) -1)
             default:
                 return undefined;
         }

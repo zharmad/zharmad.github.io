@@ -25,13 +25,22 @@ globalVars.invRefreshAlphaParams = { min: 1.0, max: 10.0, step: 0.5 }
 globalVars.temperature       =  300;
 globalVars.temperatureParams = { min: 10, max: 1000, step: 10 }
 
-globalVars.bHeatExchange = true;
+// Thermal conductivity determines the speed at which the system equilibrates towards the outside temperature.
+globalVars.wallThermalConductivity = 1.0 ;
+globalVars.wallThermalConductivityParams = { min: 0.0, max: 1.0, step: 0.05 }
+// A simulation internal parameter globalVars.bDoHeatExchange will cut out calculations if this is set to 0.0
+
+// World Gravity determines the background acceleration in the +y direction (downwards), mimicking the action of centrifugal force.
+// The Earth's gravitational constant 9.81 × 10⁻¹⁸ pm fs⁻² is clearly not visible in simulation time, but is coded here.
+globalVars.gravitationalConstant = 9.81e-18 ; 
+globalVars.worldGravityMultipler = -1;
+globalVars.worldGravityMultiplerParams = { min: -1, max: 12, step: 1 }
 
 // Define gravity to be 9.8 pm / ps^2 = 9.8 * 10^-6 pm / fs^2
 // Hardcode gravity for now within defineSimulation.js and allow changes later.
 // Gravity being 9.8 m/s^2 -> 9.8e-18 pm fs^-2. Clearly not visible in simulation time.
-globalVars.bWorldGravity = false;
-// globalVars.worldGravity = 9.8e-18 ; 
+
+
 
 // Determines the scaling between the simulation and the default pixel size.
 // Defaults to 1 pixel = 10 pm = 0.1 Angs.
@@ -124,7 +133,23 @@ function initial_setup_with_html_vars( mapUserHTMLVars ) {
     }
 }
 
-// Preset simulation variables go below this section.
+// WIP to converting these prsents into classess. 
+// This is the creation object, making sure values have a default.
+/* function create_preset_default_parameters() {
+    obj = {};
+    obj.distScale = 10;
+    obj.timeDelta = 10;
+    obj.worldTemperature = 200;
+    p.wallThermalConductivity = 1.0;
+    p.worldGravityMultipler = -1 ;
+    p.densMolecules = 1.00;
+    p.numComponentsShow = 0;
+    p.componentIDs    = [];
+    p.componentRatios = [];
+    return obj
+} */
+
+// == Available preset simulation variables go below this section. = =
 globalVars.presets = {};
 
 /*
@@ -138,7 +163,8 @@ var temp = globalVars.presets[ "inert gases" ] = {};
 temp.distScale = 20;
 temp.timeDelta = 50;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 124;
 temp.densMolecules = 1.00;
 temp.numComponentsShow = 9;
@@ -152,7 +178,8 @@ temp = globalVars.presets[ "atmosphere" ] = {};
 temp.distScale =  80;
 temp.timeDelta = 100;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.1;
 temp.numComponentsShow = 4;
@@ -167,7 +194,8 @@ temp = globalVars.presets[ "nitrogen dioxide" ] = {};
 temp.distScale  = 30;
 temp.timeDelta    = 200;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 300;
 temp.densMolecules = 0.5;
 temp.numComponentsShow = 2;
@@ -178,7 +206,8 @@ temp = globalVars.presets[ "hydrogen iodide equilibrium" ] = {};
 temp.distScale  = 20;
 temp.timeDelta    = 20;
 temp.worldTemperature = 600;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 300;
 temp.densMolecules = 1.2;
 temp.numComponentsShow = 3;
@@ -190,7 +219,8 @@ temp = globalVars.presets[ "ClNO equilibrium (aqua regia)" ] = {};
 temp.distScale  = 20;
 temp.timeDelta    = 100;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 temp.densMolecules = 1.0;
 temp.numComponentsShow = 4;
 temp.componentIDs    = [  "ClNO₂", "NO•", "ClNO", "NO₂•" ];
@@ -201,7 +231,8 @@ temp = globalVars.presets[ "ozone layer equilibrium" ] = {};
 temp.distScale = 30;
 temp.timeDelta = 100;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.7;
 temp.numComponentsShow = 3;
@@ -213,7 +244,8 @@ temp = globalVars.presets[ "ozone layer with Chlorine" ] = {};
 temp.distScale = 30;
 temp.timeDelta = 100;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.7;
 temp.numComponentsShow = 10;
@@ -225,7 +257,8 @@ temp = globalVars.presets[ "ozone layer with NOX" ] = {};
 temp.distScale = 30;
 temp.timeDelta = 100;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.7;
 temp.numComponentsShow = 8;
@@ -241,7 +274,8 @@ temp = globalVars.presets[ "NOX decomposition reactions" ] = {};
 temp.distScale = 30;
 temp.timeDelta = 100;
 temp.worldTemperature = 200;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.8;
 temp.numComponentsShow = 13;
@@ -260,7 +294,8 @@ temp = globalVars.presets[ "combustion - H2 and O2 basic" ] = {};
 temp.distScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 700;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.8;
 temp.numComponentsShow = 3;
@@ -272,7 +307,8 @@ temp = globalVars.presets[ "combustion - H2 and O2 advanced" ] = {};
 temp.distScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 700;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 400;
 temp.densMolecules = 0.8;
 temp.numComponentsShow = 8;
@@ -284,7 +320,8 @@ temp = globalVars.presets[ "combustion - hydrocarbon" ] = {};
 temp.distScale  = 30;
 temp.timeDelta    = 20;
 temp.worldTemperature = 600;
-temp.bDoHeatExchange = true;
+temp.wallThermalConductivity = 1.0;
+temp.worldGravityMultipler = -1 ;
 //temp.numMolecules = 500;
 temp.densMolecules = 1.0;
 temp.numComponentsShow = 5;

@@ -884,13 +884,13 @@ class Molecule {
     }
     
     resample_speed( T, f ) {
+        var vNew, vOld;
         if ( undefined === T ) { throw "Resampling requires an input temperature!";}        
-        let vNew = random_speed2D( T, this.mass );
         if ( undefined === f ) {
+            vNew = random_speed2D( T, this.mass );
             this.v.scale( globalVars.timeFactor * vNew / this.v.norm() ) ;
         } else {
-            const vOld = this.v.norm();
-            vNew = ( 1.0 - f ) * vOld + f * vNew;
+            vNew = f * random_speed2D( T, this.mass ) + (1.0-f)/globalVars.timeFactor * this.v.norm();
             this.v.scale( globalVars.timeFactor * vNew / this.v.norm() ) ;
         }
     }

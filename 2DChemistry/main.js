@@ -109,6 +109,22 @@ sliderWorldTemperature.oninput = function() {
     sim.set_world_temperature( this.value );
 }
 
+const sliderWallThermalConductivity = document.getElementById("sliderWallThermalConductivity");
+const textFieldWallThermalConductivity = document.getElementById("textFieldWallThermalConductivity");
+update_slider_values( sliderWallThermalConductivity, { value: globalVars.wallThermalConductivity, params: globalVars.wallThermalConductivityParams });
+textFieldWallThermalConductivity.innerHTML = Math.round( sliderWallThermalConductivity.value * 100 ) ;
+sliderWallThermalConductivity.oninput = function() {
+    if ( 0 == this.value) {
+        textFieldWallThermalConductivity.innerHTML = "(off)" ;
+    } else {
+        textFieldWallThermalConductivity.innerHTML = Math.round( this.value* 100 )+" %";
+    }
+    globalVars.wallThermalConductivity = this.value;
+    sim.set_wall_thermal_conductivity( this.value );
+    //sim.set_bool_heat_exchange( 0 < this.value );
+    // globalVars.bHeatExchange = toggleDoHeatExchange.checked;
+}
+
 const sliderWorldAreaPercentage = document.getElementById("sliderWorldAreaPercentage");
 const textFieldWorldAreaPercentage = document.getElementById("textFieldWorldAreaPercentage");
 update_slider_values( sliderWorldAreaPercentage, { value: globalVars.worldAreaPercentage, params: globalVars.worldAreaPercentageParams });
@@ -119,29 +135,35 @@ sliderWorldAreaPercentage.oninput = function() {
     sim.set_world_area_percentage( this.value );
 }
 
-const toggleDoHeatExchange = document.getElementById("toggleDoHeatExchange");
-toggleDoHeatExchange.checked = globalVars.bHeatExchange;
-//console.log( togglePresetsOverwriteAllParams.checked );
-toggleDoHeatExchange.oninput = function () {
-    globalVars.bHeatExchange = toggleDoHeatExchange.checked;
-    sim.set_bool_heat_exchange( toggleDoHeatExchange.checked );
+const sliderWorldGravityMultipler = document.getElementById("sliderWorldGravityMultipler");
+const textFieldWorldGravityMultipler = document.getElementById("textFieldWorldGravityMultipler");
+update_slider_values( sliderWorldGravityMultipler, { value: globalVars.worldGravityMultipler, params: globalVars.worldGravityMultiplerParams });
+textFieldWorldGravityMultipler.innerHTML = sliderWorldGravityMultipler.value;
+sliderWorldGravityMultipler.oninput = function() {
+    if ( this.value == -1 ) {
+        textFieldWorldGravityMultipler.innerHTML = "(off)";
+    } else {
+        textFieldWorldGravityMultipler.innerHTML = "10^"+this.value+" g";
+    }
+    globalVars.worldGravityMultipler = this.value;
+    sim.set_world_gravity_multiplier( this.value );
 }
-
+/*
 const toggleDoGravity = document.getElementById("toggleDoGravity");
-toggleDoGravity.checked = globalVars.bWorldGravity;
+toggleDoGravity.checked = globalVars.bDoWorldGravity;
 //console.log( togglePresetsOverwriteAllParams.checked );
 toggleDoGravity.oninput = function () {
-    globalVars.bWorldGravity = toggleDoGravity.checked;
+    globalVars.bDoWorldGravity = toggleDoGravity.checked;
     sim.set_bool_world_gravity( toggleDoGravity.checked );
 }
-
+*/
 
 var sliderTimeDelta = document.getElementById("sliderTimeDelta");
 var textFieldTimeDelta = document.getElementById("textFieldTimeDelta");
 update_slider_values( sliderTimeDelta, { value: globalVars.timeDelta, params: globalVars.timeDeltaParams });
 textFieldTimeDelta.innerHTML = sliderTimeDelta.value;
 sliderTimeDelta.oninput = function() {
-    textFieldTimeDelta.innerHTML = this.value;
+    textFieldTimeDelta.innerHTML = this.value+" fs";
     globalVars.timeDelta = this.value;
     sim.set_world_time_delta( this.value );
 } 
@@ -233,7 +255,8 @@ sliderPhotonEmitterIntensity.oninput = function() {
 const arrCompositionGUI = [];
 for ( let i = 0; i < 10; i++ ) {
     const o = {} ;
-    // GUI changes in the compositions tab for dynamically showing the number and type of components available for adjustment.
+    // GUI changes in the compositions tab for dynamically showing the number and type of components available for adjustment.    
+    o.moleculeName = undefined;
     o.div        = document.getElementById(`divInputComponent${i}`);
     o.colourBox  = document.getElementById(`colourBoxComponent${i}`);    
     o.textField  = document.getElementById(`textFieldComponent${i}`);  
@@ -272,7 +295,7 @@ const chartDoughnutGr  = new Chart( canvasDoughnutGr, { type: 'doughnut',
 });
 chartDoughnutGr.options.datasets.doughnut.borderColor='#000';
 chartDoughnutGr.options.plugins.title.display=true;
-chartDoughnutGr.options.plugins.title.text='Composition at last update';
+chartDoughnutGr.options.plugins.title.text='Gas composition at last update';
 chartDoughnutGr.options.plugins.title.padding=2;
 //chartDoughnutGr.options.responsive = true;
 chartDoughnutGr.options.maintainAspectRatio = false;
@@ -744,8 +767,12 @@ function toggle_sidebars( x ) {
     }
 }
 
-
 // Preset Button Functions.
+function update_slider( slider, value ) {
+    slider.value = value;
+    slider.oninput();
+}
+
 function overwrite_global_values( strType ) {
     
     const p = globalVars.presets[strType];    
@@ -754,16 +781,13 @@ function overwrite_global_values( strType ) {
     sliderDistScale.onmouseup();        
     // sliderNumMolecules.value = p.numMolecules;
     // sliderNumMolecules.oninput();
-    sliderDensMolecules.value = p.densMolecules;
-    sliderDensMolecules.oninput();
-    sliderWorldTemperature.value = p.worldTemperature;
-    sliderWorldTemperature.oninput();
-    sliderTimeDelta.value = p.timeDelta;
-    sliderTimeDelta.oninput();
-    toggleDoHeatExchange.checked = p.bDoHeatExchange;
-    toggleDoHeatExchange.oninput();
-    toggleDoGravity.checked = p.bWorldGravity;
-    toggleDoGravity.oninput();    
+    update_slider( sliderDensMolecules, p.densMolecules );
+    update_slider( sliderWorldTemperature, p.worldTemperature );
+    update_slider( sliderWallThermalConductivity, p.wallThermalConductivity );
+    update_slider( sliderTimeDelta, p.timeDelta );
+    update_slider( sliderWorldGravityMultipler, p.worldGravityMultipler );
+    //toggleDoGravity.checked = p.bDoWorldGravity;
+    //toggleDoGravity.oninput();    
     
     globalVars.componentIDs    = p.componentIDs;
     globalVars.componentRatios = p.componentRatios;
@@ -899,7 +923,8 @@ function generate_preset_simulation() {
     sliderWorldAreaPercentage.oninput();    
 }
 
-//Synchronise the composition GUI for future user modification. Hook up the variable elements directly to the gas composition object.
+// Synchronise the composition GUI for future user modification. Hook up the variable elements directly to the gas composition object.
+// This version is the first time run to show/hide an dupdate all HTML elements. The simulation version is simpler and oinly updates the values.
 function sync_composition_gui( obj ) {
     /*
     <div id="divInputComponent1" class="divDynamicBox">
@@ -908,23 +933,31 @@ function sync_composition_gui( obj ) {
     </div>    
     */
     let name = undefined, color=undefined, o = undefined;  
+    let imgsrcA = undefined, imgsrcB = undefined ;
     const n = arrCompositionGUI.length;   
     arrCompositionGUI.numShow = obj.numComponentsShow;
     
     for (let i = 0; i < n; i++ ) {
         o = arrCompositionGUI[i];
         if ( i < obj.numComponentsShow ) {
-            name = obj.componentIDs[i];            
+            name = obj.componentIDs[i];
+            o.moleculeName = name;
             color = molLib.get_molecule_color( name );
-            o.slider.name = name ;
             o.div.style.display = "block";
             o.div.style.border = `2px solid ${color}`;
             //o.colourBox.style.color = `${color}`;
             o.colourBox.style.background = `${color}`;
             o.colourBox.style.border = `2px solid grey`;
-            o.textField.innerHTML = name ;
+            o.slider.name = name ;            
             o.slider.value = sim.gasComp.data[ name ] * 100.0 ;
             o.ratioField.innerHTML = o.slider.value;
+
+            imgsrcA = sim.moleculeLibrary.get_entry( name ).imageSet['atom']['10'].image.src;
+            imgsrcB = sim.moleculeLibrary.get_entry( name ).imageSet['molecule']['10'].image.src;
+            o.textField.innerHTML = "<div class='tooltip'>" + name + "<span class='tooltipImage'>" +
+                "<img src=" + imgsrcA + "></img> " + 
+                "<img src=" + imgsrcB + "></img>" + 
+                "</span></div>";
             
             //o.slider.oninput = function () { this.ratioField.innerHTML = this.value; }
             
@@ -942,11 +975,12 @@ function sync_composition_gui( obj ) {
 }
 
 // Define an update function to link Gas composition normalisation back to the GUI.
+// This is the simulation update version
 function update_composition_GUI_from_gasComp() {
     const n = arrCompositionGUI.numShow ;
     let name = undefined, val = undefined;
     for (let i = 0; i < n; i++ ) {
-        name = arrCompositionGUI[i].textField.innerHTML ;
+        name = arrCompositionGUI[i].moleculeName ;
         val = sim.gasComp.data[ name ] * 100 ;
         val = val.toFixed(1);
         arrCompositionGUI[i].slider.value = val ;

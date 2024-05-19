@@ -47,8 +47,6 @@ function scale_factor_Maxwell(T, mass) { return Math.sqrt( 8314.46 * T / mass );
 //function scale_factor_Maxwell3D(T, mass) { return Math.sqrt( 21172.59853023744 * T / mass ); }
 
 // Returns the scalar speed of a particle in 2D motion.
-// Note: This seems to be incorrect, as it should be the CDF of a Maxwell 2D speed distribution,
-// ...and the Maxwell 2D speed distribution should be Axe^(-0.5Ax^2), where A=m/k_BT.
 function random_chi2D() { return Math.sqrt( -2.0 * Math.log( 1.0 - Math.random() ) ); }
 
 // Returns the scalar speed of a particle in 1D motion.
